@@ -2,7 +2,7 @@
 .idea/
 frida_exe/
 companion.log
-data.json
+cache.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
