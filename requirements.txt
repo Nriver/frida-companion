@@ -1,3 +1,4 @@
 frida
 frida-tools
 requests
+tqdm
