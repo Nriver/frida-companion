@@ -1,3 +1,7 @@
+# nate's custom ignore
+.idea/
+companion.log
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
