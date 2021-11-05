@@ -23,7 +23,8 @@ if __name__ == '__main__':
     logger.info(frida.get_usb_device())
 
     # check frida-server
-    check_frida_server_update(force_update=False)
+    check_frida_server_update(force_update=True)
 
     # push frida-server and run
     run_frida_server()
+    print('finished !')

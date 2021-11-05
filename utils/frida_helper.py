@@ -33,7 +33,7 @@ def get_frida_server(frida_version, device_arch):
     frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
     xz_file = frida_server_file + '.xz'
     url = f'https://github.com/frida/frida/releases/download/{frida_version}/frida-server-{frida_version}-android-{device_arch}.xz'
-    logger.info(f'Download url')
+    logger.info(f'Download url {url}')
     requests_get_download(url, os.path.join(frida_server_save_path, xz_file))
     # decompress xz file
     os.system(f'xz -d {os.path.join(frida_server_save_path, xz_file)}')

@@ -11,12 +11,13 @@ adb_path = os.path.abspath(os.path.expanduser(adb_path))
 def get_android_architecture():
     cmd = [adb_path, 'shell', 'getprop', 'ro.product.cpu.abi']
     res = subprocess.Popen(cmd, stdout=subprocess.PIPE).stdout.readline().decode('utf-8')
+    logger.info(f'get_android_architecture() {res}')
     if 'arm64' in res:
         # eg.
         # arm64-v8a
         arch = 'arm64'
     else:
-        arch = None
+        arch = res.strip()
     return arch
 
 
