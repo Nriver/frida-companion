@@ -1,5 +1,6 @@
 # nate's custom ignore
 .idea/
+frida_exe/
 companion.log
 
 # Byte-compiled / optimized / DLL files
