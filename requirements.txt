@@ -2,3 +2,4 @@ frida
 frida-tools
 requests
 tqdm
+tabulate[widechars]

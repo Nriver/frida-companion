@@ -1,3 +1,5 @@
+DEBUG = True
+
 # proxy for requests
 # USE_PROXY = False
 USE_PROXY = True

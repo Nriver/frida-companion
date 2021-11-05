@@ -3,7 +3,7 @@ import logging
 import frida
 
 from settings import log_file, check_update_on_start
-from utils.frida_helper import check_frida_update, check_frida_server_update, run_frida_server
+from utils.frida_helper import check_frida_update, check_frida_server_update, run_frida_server, get_application_list
 
 # init logger
 logger = logging.getLogger()
@@ -23,8 +23,12 @@ if __name__ == '__main__':
     logger.info(frida.get_usb_device())
 
     # check frida-server
-    check_frida_server_update(force_update=True)
+    check_frida_server_update(force_update=False)
 
     # push frida-server and run
     run_frida_server()
+
+    # show application list
+    get_application_list()
+
     print('finished !')

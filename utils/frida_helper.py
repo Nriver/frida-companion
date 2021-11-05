@@ -2,9 +2,10 @@ import logging
 import os
 
 import frida
+from tabulate import tabulate
 
-from settings import frida_server_save_path
-from utils.adb_helper import get_android_architecture, adb_push
+from settings import frida_server_save_path, DEBUG
+from utils.adb_helper import get_android_architecture, adb_push_and_run_frida_server
 from utils.github_helper import get_latest_repo_release
 from utils.requests_helper import requests_get_download
 
@@ -40,6 +41,7 @@ def get_frida_server(frida_version, device_arch):
 
 
 def check_frida_server_update(force_update=False):
+    """check and get latest frida-server"""
     device_arch = get_android_architecture()
     frida_version = frida.__version__
     frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
@@ -52,7 +54,26 @@ def check_frida_server_update(force_update=False):
 
 
 def run_frida_server(target_path='/data/local/tmp/'):
+    """run frida-server"""
     device_arch = get_android_architecture()
     frida_version = frida.__version__
     frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
-    adb_push(os.path.join(frida_server_save_path, frida_server_file), target_path, frida_server_file)
+    adb_push_and_run_frida_server(os.path.join(frida_server_save_path, frida_server_file), target_path,
+                                  frida_server_file)
+
+
+def get_application_list():
+    """application list"""
+    device_args = {}
+    device_manager = frida.get_device_manager()
+    device = device_manager.get_usb_device(**device_args)
+    applications = device.enumerate_applications()
+    apps = []
+    for x in applications:
+        row = x.name, x.identifier
+        apps.append(row)
+    if DEBUG:
+        table_data = tabulate(apps, headers=['App name', 'Identifier'], showindex="always", tablefmt="fancy_grid")
+        print(table_data)
+        logger.debug('application list:\n' + table_data)
+    return apps

@@ -21,7 +21,7 @@ def get_android_architecture():
     return arch
 
 
-def adb_push(src, dst, file_name):
+def adb_push_and_run_frida_server(src, dst, file_name):
     os.system(f'''{adb_path} push {os.path.abspath(src)} {dst}''')
     os.system(f'''{adb_path} shell "su -c 'chmod +x {os.path.join(dst, file_name)}'"''')
     os.system(f'''{adb_path} forward tcp:27042 tcp:27042''')
