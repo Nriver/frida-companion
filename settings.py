@@ -12,7 +12,9 @@ PROXIES = {
 frida_server_version = ''
 
 # check frida update on startup
-check_update_on_start = False
+check_update_on_start = True
+# update interval in days, eg. check update if last check was 7 days ago
+frida_update_interval = 7
 
 # log file
 log_file = 'companion.log'
@@ -22,3 +24,7 @@ adb_path = '~/Android/Sdk/platform-tools/adb'
 
 # frida related executables. e.g. frida-server
 frida_server_save_path = './frida_exe'
+
+# cache file
+# store something that can be deleted any time
+cache_file = 'cache.json'

@@ -1,11 +1,13 @@
 import logging
 import os
+from datetime import datetime
 
 import frida
 from tabulate import tabulate
 
 from settings import frida_server_save_path, DEBUG
 from utils.adb_helper import get_android_architecture, adb_push_and_run_frida_server
+from utils.cache_helper import cache
 from utils.github_helper import get_latest_repo_release
 from utils.requests_helper import requests_get_download
 
@@ -26,6 +28,8 @@ def check_frida_update():
         print(f'update detected, please update with command:')
         print('python3 -m pip install frida frida-tools -U --user')
         exit()
+
+    cache.set_frida_update_time(datetime.now().timestamp())
     logger.info('Good to go')
 
 
