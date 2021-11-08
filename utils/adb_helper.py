@@ -9,9 +9,9 @@ adb_path = os.path.abspath(os.path.expanduser(adb_path))
 
 
 def start_adb():
+    """try to start adb"""
     cmd = [adb_path, 'shell', 'echo hello']
     subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    print('adb started')
 
 
 def get_android_architecture():

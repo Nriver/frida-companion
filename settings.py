@@ -35,3 +35,7 @@ port = 8000
 debug = True
 use_reloader = True
 SECRET_KEY = '91afe849-63ab-4f3f-bab3-f204584d9581'
+
+# device type order
+# make usb device on top
+device_type_order = ['usb', 'local', 'remote']
