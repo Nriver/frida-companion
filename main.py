@@ -4,6 +4,7 @@ from datetime import datetime
 import frida
 
 from settings import log_file, check_update_on_start, frida_update_interval
+from utils.adb_helper import start_adb
 from utils.cache_helper import cache
 from utils.date_helper import timestamp_diff_in_days
 from utils.frida_helper import check_frida_update, check_frida_server_update, run_frida_server, get_application_list
@@ -27,6 +28,8 @@ if __name__ == '__main__':
         if not last_update_time or timestamp_diff_in_days(last_update_time,
                                                           datetime.now().timestamp()) > frida_update_interval:
             check_frida_update()
+
+    start_adb()
     logger.info(frida.get_usb_device())
 
     # check frida-server
