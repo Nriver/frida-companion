@@ -3,22 +3,30 @@
 
 <head>
     <title>Frida Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/basic.css') }}">
 </head>
 
 <body>
 
 <div>
-    <div>Frida Companion</div>
-    <input id="toggle_button" onclick="toggle_connect();" type="button" value="Disconnect">
+    <div class="container-fluid">
+        <div><a href="/" class="text-mute fs20" id="menu-toggle">Frida Companion</a></div>
+        <div id="err_msg"></div>
+        <div id="device_list">
+            {% for x in device_list %}
+            <div>{{x.name}}</div>
+            {% endfor %}
+        </div>
+        <div>
+            <button class="btn btn-success" type="button" onclick='refresh_device()'>Refresh</button>
+        </div>
+    </div>
 </div>
-<div>
-    <div>IO output</div>
-    <pre id="io">
-        </pre>
-</div>
+
 </body>
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
 <script type="text/javascript" charset="utf-8">
     let socket = io();
@@ -30,15 +38,19 @@
         $("#io").text(JSON.stringify(data.data, null, 4))
     });
 
-    function toggle_connect() {
-        if (socket.connected === true) {
-            socket.disconnect();
-            $("#toggle_button").val("connect");
-        } else {
-            socket.connect();
-            $("#toggle_button").val("disconnect");
+
+    function refresh_device() {
+        socket.emit("refresh_device")
+    }
+
+    function select_device() {
+        device_id = $("input[name='device_id']:checked").val();
+        console.log("select_device_button clicked..")
+        if (device_id != null) {
+            socket.emit("set_device_id", {id: device_id})
         }
     }
+
 </script>
 
 </html>

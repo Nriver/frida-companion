@@ -5,7 +5,7 @@ from datetime import datetime
 import frida
 from tabulate import tabulate
 
-from settings import frida_server_save_path, DEBUG
+from settings import frida_server_save_path, DEBUG, device_type_order
 from utils.adb_helper import get_android_architecture, adb_push_and_run_frida_server
 from utils.cache_helper import cache
 from utils.github_helper import get_latest_repo_release
@@ -64,6 +64,19 @@ def run_frida_server(target_path='/data/local/tmp/'):
     frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
     adb_push_and_run_frida_server(os.path.join(frida_server_save_path, frida_server_file), target_path,
                                   frida_server_file)
+
+
+def get_device_list():
+    """list adb devices"""
+    dm = frida.get_device_manager()
+    devices = dm.enumerate_devices()
+    device_list = []
+    for x in devices:
+        device_list.append({'name': x.name, 'type': x.type, 'id': x.id})
+    # sort
+    # usb device first
+    device_list = sorted(device_list, key=lambda x: device_type_order.index(x['type']))
+    return device_list
 
 
 def get_application_list():

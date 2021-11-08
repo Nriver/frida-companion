@@ -1,4 +1,4 @@
-body {
+.content {
     font-size: 10pt;
     font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
     color: black;
@@ -14,4 +14,8 @@ body {
 
 .mb-2 {
     margin-bottom: 2em;
+}
+
+.fs20 {
+    font-size: 200%;
 }
