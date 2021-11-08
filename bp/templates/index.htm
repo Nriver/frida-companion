@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="EN">
+
+<head>
+    <title>IO test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/basic.css') }}">
+</head>
+
+<body>
+
+<div>
+    <input id="toggle_button" onclick="toggle_connect();" type="button" value="Disconnect">
+</div>
+<div>
+    <div>IO output</div>
+    <pre id="io">
+        </pre>
+</div>
+</body>
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+<script type="text/javascript" charset="utf-8">
+    let socket = io();
+    socket.on('connect', function () {
+        socket.emit('connected', {data: 'I\'m connected!'});
+    });
+    socket.on('update', function (data) {
+        console.log(data);
+        $("#io").text(JSON.stringify(data.data, null, 4))
+    });
+
+    function toggle_connect() {
+        if (socket.connected === true) {
+            socket.disconnect();
+            $("#toggle_button").val("connect");
+        } else {
+            socket.connect();
+            $("#toggle_button").val("disconnect");
+        }
+    }
+</script>
+
+</html>

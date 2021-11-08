@@ -28,3 +28,10 @@ frida_server_save_path = './frida_exe'
 # cache file
 # store something that can be deleted any time
 cache_file = 'cache.json'
+
+# flask related settings
+host = '127.0.0.1'
+port = 8000
+debug = True
+use_reloader = True
+SECRET_KEY = '91afe849-63ab-4f3f-bab3-f204584d9581'

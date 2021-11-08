@@ -3,3 +3,7 @@ frida-tools
 requests
 tqdm
 tabulate[widechars]
+flask
+flask_socketio
+eventlet
+Flask-WTF
