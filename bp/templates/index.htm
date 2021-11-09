@@ -14,12 +14,7 @@
         <div><a href="/" class="text-mute fs20" id="menu-toggle">Frida Companion</a></div>
         <div id="err_msg"></div>
         <div id="device_list">
-            {% for x in device_list %}
-            <label>
-                <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1"
-                       {% if loop.index== 1 %} checked {% endif %}>{{x.name}}
-            </label>
-            {% endfor %}
+            {% include "components/device_list.htm" %}
         </div>
         <div>
             <button class="btn btn-secondary" type="button" onclick='refresh_device()'>Refresh</button>
@@ -39,9 +34,9 @@
     socket.on('connect', function () {
         socket.emit('connected', {data: 'I\'m connected!'});
     });
-    socket.on('update', function (data) {
+    socket.on('refresh_device_response', function (data) {
         console.log(data);
-        $("#io").text(JSON.stringify(data.data, null, 4))
+        $("#device_list").html(data.data.device_list_html)
     });
 
 
