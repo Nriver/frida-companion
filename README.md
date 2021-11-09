@@ -6,7 +6,7 @@ Made with 😍 and ✌️.
 
 1. Check frida update on startup.
 
-2. Automatically detect device type and download the corresponding frida-server. Then try to push and run on your device.
+2. Automatically detect device type and download the corresponding frida-server. Then try to push and run on your device. Support multiple device types.
 
 # Install
 
