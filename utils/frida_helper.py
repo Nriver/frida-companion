@@ -93,10 +93,16 @@ def get_application_list():
     applications = device.enumerate_applications()
     apps = []
     for x in applications:
-        row = x.name, x.identifier
+        row = {
+            'name': x.name,
+            'identifier': x.identifier
+        }
         apps.append(row)
+    # sort by identifier
+    apps = sorted(apps, key=lambda x: x['identifier'])
     if DEBUG:
-        table_data = tabulate(apps, headers=['App name', 'Identifier'], showindex="always", tablefmt="fancy_grid")
+        table_data = tabulate([[x['name'], x['identifier']] for x in apps], headers=['App name', 'Identifier'],
+                              showindex="always", tablefmt="fancy_grid")
         print(table_data)
         logger.debug('application list:\n' + table_data)
     return apps

@@ -13,11 +13,15 @@
     <div class="container-fluid">
         <div><a href="/" class="text-mute fs20" id="menu-toggle">Frida Companion</a></div>
         <div id="err_msg"></div>
+        <div>Device</div>
         <div id="device_list">
             {% include "components/device_list.htm" %}
         </div>
         <div>
             <button class="btn btn-secondary" type="button" onclick='refresh_device()'>Refresh</button>
+        </div>
+        <div id="application_list">
+            {% include "components/application_list.htm" %}
         </div>
         <div class="mt-1">
             <button class="btn btn-success" type="button" onclick='start()'>Start</button>
@@ -38,11 +42,16 @@
         console.log(data);
         $("#device_list").html(data.data.device_list_html)
     });
+    socket.on('refresh_application_response', function (data) {
+        console.log(data);
+        $("#application_list").html(data.data.application_list_html)
+    });
 
 
     function refresh_device() {
         console.log("refresh_device")
         socket.emit("refresh_device")
+        socket.emit("refresh_application")
     }
 
     function start() {

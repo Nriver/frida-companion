@@ -1,0 +1,8 @@
+{% for x in application_list %}
+<label>
+    <input class="form-check-input" type="radio" name="applicationRadios" id="applicationRadios"
+           value="{{x.identifier}}"
+           {% if loop.index== 1 %} checked {% endif %}>{{x.identifier}} {{x.name}}
+</label>
+<br/>
+{% endfor %}

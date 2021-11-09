@@ -1,5 +1,6 @@
 # frida-companion
-User-friendly frida automation
+User-friendly frida automation platform.
+Made with 😍 and ✌️.
 
 # Feature
 
