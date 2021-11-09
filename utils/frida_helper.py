@@ -85,24 +85,43 @@ def get_device_list():
     return device_list
 
 
-def get_application_list():
+def get_device(device_id):
+    return frida.get_device(id=device_id)
+
+
+def get_application_list(device_id=None):
     """application list"""
-    device_args = {}
-    device_manager = frida.get_device_manager()
-    device = device_manager.get_usb_device(**device_args)
-    applications = device.enumerate_applications()
+    if device_id:
+        device = get_device(device_id)
+    else:
+        device_args = {}
+        device_manager = frida.get_device_manager()
+        device = device_manager.get_usb_device(**device_args)
+
     apps = []
-    for x in applications:
-        row = {
-            'name': x.name,
-            'identifier': x.identifier
-        }
-        apps.append(row)
-    # sort by identifier
-    apps = sorted(apps, key=lambda x: x['identifier'])
-    if DEBUG:
-        table_data = tabulate([[x['name'], x['identifier']] for x in apps], headers=['App name', 'Identifier'],
-                              showindex="always", tablefmt="fancy_grid")
-        print(table_data)
-        logger.debug('application list:\n' + table_data)
+    if device.type == 'local':
+        applications = device.enumerate_processes()
+        for x in applications:
+            row = {
+                'name': x.name,
+                'identifier': x.pid
+            }
+            apps.append(row)
+        # sort by name
+        apps = sorted(apps, key=lambda x: x['name'])
+    else:
+        applications = device.enumerate_applications()
+        for x in applications:
+            row = {
+                'name': x.name,
+                'identifier': x.identifier
+            }
+            apps.append(row)
+        # sort by identifier
+        apps = sorted(apps, key=lambda x: x['identifier'])
+        if DEBUG:
+            table_data = tabulate([[x['name'], x['identifier']] for x in apps], headers=['App name', 'Identifier'],
+                                  showindex="always", tablefmt="fancy_grid")
+            print(table_data)
+            logger.debug('application list:\n' + table_data)
     return apps

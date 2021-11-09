@@ -2,7 +2,12 @@
 <label>
     <input class="form-check-input" type="radio" name="applicationRadios" id="applicationRadios"
            value="{{x.identifier}}"
-           {% if loop.index== 1 %} checked {% endif %}>{{x.identifier}} {{x.name}}
+           {% if loop.index== 1 %} checked {% endif %} onClick="click_application_radio(this)">
+    {% if cache.get_device_type() in ['usb', 'remote'] %}
+    {{x.identifier}} {{x.name}}
+    {% else %}
+    {{x.name}} {{x.identifier}}
+    {% endif %}
 </label>
 <br/>
 {% endfor %}
