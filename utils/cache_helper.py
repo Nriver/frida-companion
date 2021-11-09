@@ -5,6 +5,7 @@ import os
 import frida
 
 from settings import cache_file
+from utils.frida_helper import get_device_system
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class Cache:
         device = frida.get_device(device_id)
         self.data['device_id'] = device.id
         self.data['device_type'] = device.type
+        self.data['device_system'] = get_device_system(device_id)
         self.save()
 
 

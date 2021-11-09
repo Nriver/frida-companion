@@ -1,5 +1,6 @@
 import logging
 import os
+import platform
 from datetime import datetime
 
 import frida
@@ -7,7 +8,6 @@ from tabulate import tabulate
 
 from settings import frida_server_save_path, DEBUG, device_type_order
 from utils.adb_helper import get_android_architecture, adb_push_and_run_frida_server
-from utils.cache_helper import cache
 from utils.github_helper import get_latest_repo_release
 from utils.requests_helper import requests_get_download
 
@@ -20,6 +20,7 @@ def get_latest_frida():
 
 def check_frida_update():
     """compare current installed frida and latest one"""
+    from utils.cache_helper import cache
     logger.info('check update')
     latest_ver = get_latest_frida()
     current_ver = frida.__version__
@@ -78,7 +79,15 @@ def get_device_list():
     print(devices)
     device_list = []
     for x in devices:
-        device_list.append({'name': x.name, 'type': x.type, 'id': x.id})
+        # check if remote device is available
+        # usually a remote device is set as a port forward with `adb forward tcp:27042 tcp:27042`
+        if x.type == 'remote':
+            try:
+                x.enumerate_processes()
+            except Exception as e:
+                print('ignore unavailable remote device')
+                continue
+        device_list.append({'name': x.name, 'type': x.type, 'id': x.id, 'system': get_device_system(x.id)})
     # sort
     # usb device first
     device_list = sorted(device_list, key=lambda x: device_type_order.index(x['type']))
@@ -87,6 +96,10 @@ def get_device_list():
 
 def get_device(device_id):
     return frida.get_device(id=device_id)
+
+
+def get_device_type(device_id):
+    return frida.get_device(id=device_id).type
 
 
 def get_application_list(device_id=None):
@@ -125,3 +138,21 @@ def get_application_list(device_id=None):
             print(table_data)
             logger.debug('application list:\n' + table_data)
     return apps
+
+
+def get_device_system(device_id):
+    """get device os system type"""
+    device = frida.get_device(device_id)
+    device_type = get_device_type(device_id)
+    if device_type == 'usb':
+        process_names = [x.name for x in device.enumerate_processes()]
+        print(process_names)
+        if 'com.android.systemui' in process_names:
+            return 'android'
+        elif 'SpringBoard' in process_names:
+            return 'ios'
+    elif device_type == 'local':
+        return platform.system()
+    elif device_type == 'remote':
+        return 'unknown'
+    return None

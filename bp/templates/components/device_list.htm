@@ -3,6 +3,7 @@
 <label>
     <input class="form-check-input" type="radio" name="deviceRadios" id="deviceRadios" value="{{x.id}}"
            {% if cache.get_device_id()==x['id'] %} checked {% endif %} onClick="click_device_radio(this)">{{x.name}}
+    ({{x.system}})
 </label>
 {% endfor %}
 
