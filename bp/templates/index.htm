@@ -15,11 +15,17 @@
         <div id="err_msg"></div>
         <div id="device_list">
             {% for x in device_list %}
-            <div>{{x.name}}</div>
+            <label>
+                <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1"
+                       {% if loop.index== 1 %} checked {% endif %}>{{x.name}}
+            </label>
             {% endfor %}
         </div>
         <div>
-            <button class="btn btn-success" type="button" onclick='refresh_device()'>Refresh</button>
+            <button class="btn btn-secondary" type="button" onclick='refresh_device()'>Refresh</button>
+        </div>
+        <div class="mt-1">
+            <button class="btn btn-success" type="button" onclick='start()'>Start</button>
         </div>
     </div>
 </div>
@@ -40,11 +46,16 @@
 
 
     function refresh_device() {
+        console.log("refresh_device")
         socket.emit("refresh_device")
     }
 
+    function start() {
+        console.log("start application")
+    }
+
     function select_device() {
-        device_id = $("input[name='device_id']:checked").val();
+        device_id = $("input[name='device_id']:checked").val()
         console.log("select_device_button clicked..")
         if (device_id != null) {
             socket.emit("set_device_id", {id: device_id})

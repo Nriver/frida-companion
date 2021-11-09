@@ -68,8 +68,14 @@ def run_frida_server(target_path='/data/local/tmp/'):
 
 def get_device_list():
     """list adb devices"""
-    dm = frida.get_device_manager()
-    devices = dm.enumerate_devices()
+
+    # https://github.com/frida/frida-python/issues/189
+    # frida does not recognize hot-plug usb device unless whole library is reloaded, may be a bug in frida?
+    import importlib
+    importlib.reload(frida)
+
+    devices = frida.enumerate_devices()
+    print(devices)
     device_list = []
     for x in devices:
         device_list.append({'name': x.name, 'type': x.type, 'id': x.id})
