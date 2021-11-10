@@ -75,7 +75,7 @@ def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
     # os.system(f'''{adb_path} shell "su -c '{os.path.join(dst, file_name)} &'"''')
     # os.system will hang on this execution, so use subprocess here
     if device_id:
-        subprocess.Popen([adb_path, 'shell', '-s', device_id, f"su -c '{os.path.join(dst, file_name)} &'"])
+        subprocess.Popen([adb_path, '-s', device_id, 'shell', f"su -c '{os.path.join(dst, file_name)} &'"])
     else:
         subprocess.Popen([adb_path, 'shell', f"su -c '{os.path.join(dst, file_name)} &'"])
     logger.info('frida-server started')

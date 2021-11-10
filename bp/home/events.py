@@ -4,7 +4,7 @@ from __main__ import socketio
 import frida
 from flask import render_template
 
-from utils.adb_helper import get_android_architecture
+from utils.adb_helper import get_android_architecture, is_frida_server_running
 from utils.cache_helper import cache
 from utils.frida_helper import get_device_list, get_application_list, run_frida_server, get_device_system, \
     get_all_frida_gadget_for_android
@@ -60,7 +60,8 @@ def start_application(message):
     # only android devices need to start frida server manually
     # iOS device are handled by Cydia packages
     if device_system == 'android':
-        run_frida_server(device_id)
+        if not is_frida_server_running(device_id):
+            run_frida_server(device_id)
         print('server started!')
     pid = None
     try:
