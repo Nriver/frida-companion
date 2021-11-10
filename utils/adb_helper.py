@@ -63,11 +63,19 @@ def get_android_architecture(device_id=None):
 
 
 def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
-    os.system(f'''{adb_path} push {os.path.abspath(src)} {dst}''')
-    os.system(f'''{adb_path} shell "su -c 'chmod +x {os.path.join(dst, file_name)}'"''')
-    os.system(f'''{adb_path} forward tcp:27042 tcp:27042''')
-    os.system(f'''{adb_path} forward tcp:27043 tcp:27043''')
+    if device_id:
+        device_switch = f'-s {device_id}'
+    else:
+        device_switch = ''
+
+    os.system(f'''{adb_path} {device_switch} push {os.path.abspath(src)} {dst}''')
+    os.system(f'''{adb_path} {device_switch} shell "su -c 'chmod +x {os.path.join(dst, file_name)}'"''')
+    os.system(f'''{adb_path} {device_switch} forward tcp:27042 tcp:27042''')
+    os.system(f'''{adb_path} {device_switch} forward tcp:27043 tcp:27043''')
     # os.system(f'''{adb_path} shell "su -c '{os.path.join(dst, file_name)} &'"''')
     # os.system will hang on this execution, so use subprocess here
-    subprocess.Popen([adb_path, 'shell', f"su -c '{os.path.join(dst, file_name)} &'"])
+    if device_id:
+        subprocess.Popen([adb_path, 'shell', '-s', device_id, f"su -c '{os.path.join(dst, file_name)} &'"])
+    else:
+        subprocess.Popen([adb_path, 'shell', f"su -c '{os.path.join(dst, file_name)} &'"])
     logger.info('frida-server started')
