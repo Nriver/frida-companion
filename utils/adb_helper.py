@@ -79,3 +79,13 @@ def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
     else:
         subprocess.Popen([adb_path, 'shell', f"su -c '{os.path.join(dst, file_name)} &'"])
     logger.info('frida-server started')
+
+
+def force_stop_application_by_identifier(identifier, device_id):
+    # kill application by identifier name e.g. com.xyx.abc
+    subprocess.run([adb_path, '-s', device_id, 'shell', f'am force-stop {identifier}'])
+
+
+def force_restart_application_by_identifier(identifier, device_id):
+    # force restart application by identifier name e.g. com.xyx.abc
+    subprocess.run([adb_path, '-s', device_id, 'shell', f'am force-stop {identifier} && monkey -p {identifier} 1'])
