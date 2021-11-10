@@ -55,7 +55,7 @@
     function refresh_device() {
         console.log("refresh_device")
         socket.emit("refresh_device", {'device_id': $("input:radio[name=deviceRadios]:checked").val()})
-        socket.emit("refresh_application")
+        socket.emit("refresh_application", {'device_id': $("input:radio[name=deviceRadios]:checked").val()})
     }
 
     function refresh_application() {

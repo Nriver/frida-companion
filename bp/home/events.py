@@ -30,7 +30,7 @@ def refresh_device(message):
 
 
 @socketio.on('refresh_application', namespace='/')
-def refresh_device(message):
+def refresh_application(message):
     print('refresh_application()', message)
 
     device_id = message['device_id']
@@ -78,9 +78,14 @@ def start_application(message):
         return
     session = device.attach(pid)
     print(session)
-    device.resume(pid)
 
-    session.detach()
+    # startup script
+    startup_script_string = f'''console.log("hello, {application} started, startup script executed!")'''
+    script = session.create_script(startup_script_string)
+    script.load()
+
+    device.resume(pid)
+    # session.detach()
 
     print('start complete')
 
