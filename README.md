@@ -1,4 +1,6 @@
 # frida-companion
+!!! Project is still under development, not production ready, yet 😄 !!!
+
 User-friendly frida automation platform.
 Made with 😍 and ✌️.
 
