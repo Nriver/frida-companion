@@ -48,6 +48,9 @@
         $("#application_list").html(data.data.application_list_html)
     });
 
+    socket.on('start_application_response', function (data) {
+        console.log(data);
+    });
 
     function refresh_device() {
         console.log("refresh_device")
@@ -62,6 +65,10 @@
 
     function start() {
         console.log("start application")
+        socket.emit("start_application", {
+            'device_id': $("input:radio[name=deviceRadios]:checked").val(),
+            'application': $("input:radio[name=applicationRadios]:checked").val()
+        })
     }
 
     function click_device_radio(input) {

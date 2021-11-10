@@ -1,9 +1,10 @@
 from __main__ import socketio
 
+import frida
 from flask import render_template
 
 from utils.cache_helper import cache
-from utils.frida_helper import get_device_list, get_application_list
+from utils.frida_helper import get_device_list, get_application_list, run_frida_server, get_device_system
 
 
 @socketio.on('home_page', namespace='/')
@@ -38,3 +39,31 @@ def refresh_device(message):
     socketio.emit('refresh_application_response',
                   {'data': {'application_list_html': application_list_html}})
     return application_list
+
+
+@socketio.on('start_application', namespace='/')
+def start_application(message):
+    print('start_application()', message)
+    device_id = message['device_id']
+    application = message['application']
+    cache.set_target_application(application)
+    device = frida.get_device(device_id)
+
+    device_system = get_device_system(device_id)
+    print(device_system)
+    # start frida-server
+    # only android devices need to start frida server manually
+    # iOS device are handled by Cydia packages
+    if device_system == 'android':
+        run_frida_server()
+        print('server started!')
+
+    pid = device.spawn([application, ])
+    print(pid)
+    session = device.attach(pid)
+    print(session)
+    device.resume(pid)
+
+    print('start complete')
+
+    return

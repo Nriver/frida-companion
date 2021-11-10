@@ -49,6 +49,13 @@ class Cache:
         self.data['device_type'] = device_type
         self.save()
 
+    def get_target_application(self):
+        return self.data.get('target_application', None)
+
+    def set_target_application(self, target_application):
+        self.data['target_application'] = target_application
+        self.save()
+
     def update_device_info(self, device_id):
         device = frida.get_device(device_id)
         self.data['device_id'] = device.id

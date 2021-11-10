@@ -36,26 +36,52 @@ def check_frida_update():
 
 def get_frida_server(frida_version, device_arch):
     """download frida-server"""
-    frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
-    xz_file = frida_server_file + '.xz'
-    url = f'https://github.com/frida/frida/releases/download/{frida_version}/frida-server-{frida_version}-android-{device_arch}.xz'
-    logger.info(f'Download url {url}')
-    requests_get_download(url, os.path.join(frida_server_save_path, xz_file))
-    # decompress xz file
-    os.system(f'xz -d {os.path.join(frida_server_save_path, xz_file)}')
+    if not os.path.exists(frida_server_save_path):
+        os.makedirs(frida_server_save_path)
+
+    frida_file = f'frida-server-{frida_version}-android-{device_arch}'
+    xz_file = frida_file + '.xz'
+    url = f'https://github.com/frida/frida/releases/download/{frida_version}/{xz_file}'
+    local_frida_file = os.path.join(frida_server_save_path, frida_file)
+    local_xz_file = os.path.join(frida_server_save_path, xz_file)
+    print(local_xz_file)
+    if os.path.exists(local_frida_file):
+        logger.info(f'skip download')
+    else:
+        logger.info(f'Download frida server {url}')
+        requests_get_download(url, local_xz_file)
+        # decompress xz file
+        os.system(f'xz -d {local_xz_file}')
 
 
-def check_frida_server_update(force_update=False):
+def get_frida_gadget(frida_version, device_arch):
+    # download frida gadget
+    frida_gadget_save_path = os.path.expanduser('~/.cache/frida/')
+    if not os.path.exists(frida_gadget_save_path):
+        os.makedirs(frida_gadget_save_path)
+
+    frida_file = f'frida-gadget-{frida_version}-android-{device_arch}.so'
+    xz_file = frida_file + '.xz'
+    url = f'https://github.com/frida/frida/releases/download/{frida_version}/{xz_file}'
+    local_frida_file = os.path.join(frida_gadget_save_path, frida_file)
+    local_xz_file = os.path.join(frida_gadget_save_path, xz_file)
+    print(local_xz_file)
+    if os.path.exists(local_frida_file):
+        logger.info(f'skip download')
+    else:
+        logger.info(f'Download frida gadget {url}')
+        requests_get_download(url, local_xz_file)
+        # decompress xz file
+        os.system(f'xz -d {local_xz_file}')
+
+
+def check_frida_server_update():
     """check and get latest frida-server"""
     device_arch = get_android_architecture()
     frida_version = frida.__version__
-    frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
-    if not force_update and os.path.exists(os.path.join(frida_server_save_path, frida_server_file)):
-        return
 
-    if not os.path.exists(frida_server_save_path):
-        os.makedirs(frida_server_save_path)
     get_frida_server(frida_version, device_arch)
+    get_frida_gadget(frida_version, device_arch)
 
 
 def run_frida_server(target_path='/data/local/tmp/'):
