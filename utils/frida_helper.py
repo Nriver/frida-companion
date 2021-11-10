@@ -2,12 +2,14 @@ import logging
 import os
 import platform
 from datetime import datetime
+from shutil import copyfile
 
 import frida
 from tabulate import tabulate
 
 from settings import frida_server_save_path, DEBUG, device_type_order
-from utils.adb_helper import get_android_architecture, adb_push_and_run_frida_server
+from utils.adb_helper import get_android_architecture, adb_push_and_run_frida_server, is_android, \
+    is_frida_server_running
 from utils.github_helper import get_latest_repo_release
 from utils.requests_helper import requests_get_download
 
@@ -63,6 +65,7 @@ def get_frida_gadget(frida_version, device_arch):
     frida_file = f'frida-gadget-{frida_version}-android-{device_arch}.so'
     xz_file = frida_file + '.xz'
     url = f'https://github.com/frida/frida/releases/download/{frida_version}/{xz_file}'
+    print('download', url)
     local_frida_file = os.path.join(frida_gadget_save_path, frida_file)
     local_xz_file = os.path.join(frida_gadget_save_path, xz_file)
     print(local_xz_file)
@@ -74,6 +77,17 @@ def get_frida_gadget(frida_version, device_arch):
         # decompress xz file
         os.system(f'xz -d {local_xz_file}')
 
+        # need to be a default name which frida can recognize
+        so_path = os.path.join(frida_gadget_save_path, f'gadget-android-{device_arch}.so')
+        if os.path.exists(so_path):
+            os.remove(so_path)
+        copyfile(local_frida_file, so_path)
+
+
+def get_all_frida_gadget_for_android(frida_version):
+    for device_arch in ['arm', 'arm64', 'x86', 'x86_64']:
+        get_frida_gadget(frida_version, device_arch)
+
 
 def check_frida_server_update():
     """check and get latest frida-server"""
@@ -84,13 +98,13 @@ def check_frida_server_update():
     get_frida_gadget(frida_version, device_arch)
 
 
-def run_frida_server(target_path='/data/local/tmp/'):
+def run_frida_server(device_id=None, target_path='/data/local/tmp/'):
     """run frida-server"""
-    device_arch = get_android_architecture()
+    device_arch = get_android_architecture(device_id)
     frida_version = frida.__version__
     frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
     adb_push_and_run_frida_server(os.path.join(frida_server_save_path, frida_server_file), target_path,
-                                  frida_server_file)
+                                  frida_server_file, device_id)
 
 
 def get_device_list():
@@ -149,6 +163,16 @@ def get_application_list(device_id=None):
         # sort by name
         apps = sorted(apps, key=lambda x: x['name'])
     else:
+        # frida-server must be running before we use enumerate_process
+        # if frida-server is not running enumerate_process will wait until timeout which is too slow
+
+        if is_android(device_id):
+            # if is_frida_server_running(device_id):
+            #     stop_frida_server(device_id)
+            # run_frida_server(device_id)
+            if not is_frida_server_running(device_id):
+                run_frida_server(device_id)
+
         applications = device.enumerate_applications()
         for x in applications:
             row = {
@@ -168,14 +192,13 @@ def get_application_list(device_id=None):
 
 def get_device_system(device_id):
     """get device os system type"""
-    device = frida.get_device(device_id)
+    # device = frida.get_device(device_id)
     device_type = get_device_type(device_id)
     if device_type == 'usb':
-        process_names = [x.name for x in device.enumerate_processes()]
-        print(process_names)
-        if 'com.android.systemui' in process_names:
+        # use a quick check with adb
+        if is_android(device_id):
             return 'android'
-        elif 'SpringBoard' in process_names:
+        else:
             return 'ios'
     elif device_type == 'local':
         return platform.system()

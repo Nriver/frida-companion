@@ -8,14 +8,49 @@ logger = logging.getLogger(__name__)
 adb_path = os.path.abspath(os.path.expanduser(adb_path))
 
 
-def start_adb():
+def start_adb(device_id=None):
     """try to start adb"""
-    cmd = [adb_path, 'shell', 'echo hello']
-    subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    if device_id:
+        cmd = [adb_path, '-s', device_id, 'shell', 'echo hello']
+    else:
+        cmd = [adb_path, 'shell', 'echo hello']
+    res = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    return res.stdout.read().decode('utf-8').strip()
 
 
-def get_android_architecture():
-    cmd = [adb_path, 'shell', 'getprop', 'ro.product.cpu.abi']
+def is_android(device_id):
+    if 'hello' in start_adb(device_id):
+        return True
+    return False
+
+
+def is_frida_server_running(device_id):
+    cmd = [adb_path, '-s', device_id, 'shell', 'ps|grep frida-server']
+    res = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    if 'frida-server' in res.stdout.read().decode('utf-8').strip():
+        return True
+    return False
+
+
+def stop_frida_server(device_id):
+    cmd = [adb_path, '-s', device_id, 'shell', 'ps|grep frida']
+    res = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    output = res.stdout.read().decode('utf-8').strip()
+    print(output)
+    if output:
+        for x in output.split('\n'):
+            pid = x.split()[1]
+            cmd = [adb_path, '-s', device_id, 'shell', f'''"su -c 'kill {pid}'"''']
+            subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        print('frida-server stopped')
+    return
+
+
+def get_android_architecture(device_id=None):
+    if device_id:
+        cmd = [adb_path, '-s', device_id, 'shell', 'getprop', 'ro.product.cpu.abi']
+    else:
+        cmd = [adb_path, 'shell', 'getprop', 'ro.product.cpu.abi']
     res = subprocess.Popen(cmd, stdout=subprocess.PIPE).stdout.readline().decode('utf-8')
     logger.info(f'get_android_architecture() {res}')
     if 'arm64' in res:
@@ -27,7 +62,7 @@ def get_android_architecture():
     return arch
 
 
-def adb_push_and_run_frida_server(src, dst, file_name):
+def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
     os.system(f'''{adb_path} push {os.path.abspath(src)} {dst}''')
     os.system(f'''{adb_path} shell "su -c 'chmod +x {os.path.join(dst, file_name)}'"''')
     os.system(f'''{adb_path} forward tcp:27042 tcp:27042''')

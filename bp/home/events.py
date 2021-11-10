@@ -1,10 +1,15 @@
+import logging
 from __main__ import socketio
 
 import frida
 from flask import render_template
 
+from utils.adb_helper import get_android_architecture
 from utils.cache_helper import cache
-from utils.frida_helper import get_device_list, get_application_list, run_frida_server, get_device_system
+from utils.frida_helper import get_device_list, get_application_list, run_frida_server, get_device_system, \
+    get_all_frida_gadget_for_android
+
+logger = logging.getLogger(__name__)
 
 
 @socketio.on('home_page', namespace='/')
@@ -26,7 +31,7 @@ def refresh_device(message):
 
 @socketio.on('refresh_application', namespace='/')
 def refresh_device(message):
-    print('refresh_device()', message)
+    print('refresh_application()', message)
 
     device_id = message['device_id']
 
@@ -55,14 +60,26 @@ def start_application(message):
     # only android devices need to start frida server manually
     # iOS device are handled by Cydia packages
     if device_system == 'android':
-        run_frida_server()
+        run_frida_server(device_id)
         print('server started!')
-
-    pid = device.spawn([application, ])
-    print(pid)
+    pid = None
+    try:
+        pid = device.spawn([application, ])
+    except Exception as e:
+        if 'need Gadget to attach' in str(e):
+            device_arch = get_android_architecture(device_id)
+            frida_version = frida.__version__
+            # get_frida_gadget(frida_version, device_arch)
+            get_all_frida_gadget_for_android(frida_version)
+            pid = device.spawn([application, ])
+    if not pid:
+        print('spawn error')
+        return
     session = device.attach(pid)
     print(session)
     device.resume(pid)
+
+    session.detach()
 
     print('start complete')
 
