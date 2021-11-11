@@ -22,6 +22,8 @@ class Cache:
                     return
                 self.data = json.loads(content)
 
+        self.objs = {}
+
     def save(self):
         logger.info('save cache')
         print(self.data)
@@ -62,6 +64,12 @@ class Cache:
         self.data['device_type'] = device.type
         self.data['device_system'] = get_device_system(device_id)
         self.save()
+
+    def save_obj(self, key, obj):
+        self.objs[key] = obj
+
+    def get_obj(self, key):
+        return self.objs.get(key, None)
 
 
 cache = Cache()

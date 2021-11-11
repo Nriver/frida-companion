@@ -88,6 +88,8 @@ def start_application(message):
     device.resume(pid)
     # session.detach()
 
+    cache.save_obj('session', session)
+
     print('start complete')
 
     # send redirect
