@@ -4,7 +4,7 @@ from __main__ import socketio
 import frida
 from flask import render_template
 
-from utils.adb_helper import get_android_architecture, is_frida_server_running
+from utils.adb_helper import is_frida_server_running
 from utils.cache_helper import cache
 from utils.frida_helper import get_device_list, get_application_list, run_frida_server, get_device_system, \
     get_all_frida_gadget_for_android
@@ -68,14 +68,15 @@ def start_application(message):
         pid = device.spawn([application, ])
     except Exception as e:
         if 'need Gadget to attach' in str(e):
-            device_arch = get_android_architecture(device_id)
+            # device_arch = get_android_architecture(device_id)
             frida_version = frida.__version__
             # get_frida_gadget(frida_version, device_arch)
             get_all_frida_gadget_for_android(frida_version)
             pid = device.spawn([application, ])
     if not pid:
         print('spawn error')
-        return
+        socketio.emit('start_application_response', {'success': False})
+        return False
     session = device.attach(pid)
     print(session)
 
@@ -89,4 +90,11 @@ def start_application(message):
 
     print('start complete')
 
-    return
+    # send redirect
+    if device_system == 'android':
+        socketio.emit('start_application_response', {'success': True, 'next': '/android'})
+    elif device_system == 'ios':
+        socketio.emit('start_application_response', {'success': True, 'next': '/ios'})
+    else:
+        socketio.emit('start_application_response', {'success': True, 'next': '/general'})
+    return True

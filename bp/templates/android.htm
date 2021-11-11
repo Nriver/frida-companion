@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Android @ Frida-Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/basic.css') }}">
+</head>
+<body>
+<div>
+    <div class="container-fluid">
+        <div><a href="/" class="text-mute fs20" id="menu-toggle">Frida Companion</a></div>
+        <div id="err_msg"></div>
+        <div>Android</div>
+    </div>
+</div>
+</body>
+
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+<script type="text/javascript" charset="utf-8">
+    let socket = io();
+    socket.on('connect', function () {
+        socket.emit('connected', {data: 'I\'m connected!'});
+    });
+</script>
+
+</html>

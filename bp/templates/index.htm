@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="EN">
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
     <title>Frida Companion</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/basic.css') }}">
@@ -50,6 +51,12 @@
 
     socket.on('start_application_response', function (data) {
         console.log(data);
+        if (data.success === true) {
+            console.log("ready to jump");
+            window.location.href = data.next;
+        } else {
+            console.log("abort abort!");
+        }
     });
 
     function refresh_device() {
