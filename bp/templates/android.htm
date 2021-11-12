@@ -12,6 +12,10 @@
         <div><a href="/" class="text-mute fs20" id="menu-toggle">Frida Companion</a></div>
         <div id="err_msg"></div>
         <div>Android</div>
+        <button class="btn btn-primary" type="submit" onclick="load_classes()">Show Classes</button>
+        <div id="class_names">
+            {% include "components/class_list.htm" %}
+        </div>
     </div>
 </div>
 </body>
@@ -24,6 +28,18 @@
     socket.on('connect', function () {
         socket.emit('connected', {data: 'I\'m connected!'});
     });
+
+    socket.on('load_class_response', function (data) {
+        console.log("load_class_response");
+        console.log(data);
+    });
+
+
+    function load_classes() {
+        console.log("load_classes")
+        socket.emit("load_classes", {data: ''})
+    }
+
 </script>
 
 </html>
