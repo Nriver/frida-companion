@@ -23,6 +23,36 @@ def show_modules(session):
     return script
 
 
+def show_modules_sync(session):
+    """
+    (sync) show module names
+
+    Usage:
+    script = show_modules_sync(session)
+    res = script.exports.show_modules_sync()
+    for x in res:
+        print(x)
+    """
+
+    def on_message(message, data):
+        print("[%s] -> %s" % (message, data))
+
+    script = session.create_script("""
+        function show_modules(){
+            return Process.enumerateModulesSync();
+        }
+        rpc.exports = {
+            showModulesSync: function(){
+                return show_modules();
+            }
+        }
+    """)
+
+    script.on('message', on_message)
+    script.load()
+    return script
+
+
 def show_imports(session, module_name):
     """show module imports (no output?)"""
 
