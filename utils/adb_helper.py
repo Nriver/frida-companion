@@ -89,3 +89,20 @@ def force_stop_application_by_identifier(identifier, device_id):
 def force_restart_application_by_identifier(identifier, device_id):
     # force restart application by identifier name e.g. com.xyx.abc
     subprocess.run([adb_path, '-s', device_id, 'shell', f'am force-stop {identifier} && monkey -p {identifier} 1'])
+
+
+def get_package_list():
+    """package list"""
+    package_list = []
+    res = subprocess.Popen([adb_path, 'shell', 'pm', 'list', 'package'], stdout=subprocess.PIPE)
+    for line in res.stdout.read().decode('utf-8').split('\n'):
+        if not 'package:' in line:
+            continue
+        package_name = line.split('package:')[1].strip()
+        package_list.append(package_name)
+    return package_list
+
+
+def is_package_installed(package_name):
+    """check package exists"""
+    return package_name in get_package_list()
