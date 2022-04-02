@@ -24,8 +24,11 @@ def is_android(device_id):
     return False
 
 
-def is_frida_server_running(device_id):
-    cmd = [adb_path, '-s', device_id, 'shell', 'ps|grep frida-server']
+def is_frida_server_running(device_id=None):
+    if device_id:
+        cmd = [adb_path, '-s', device_id, 'shell', 'ps|grep frida-server']
+    else:
+        cmd = [adb_path, 'shell', 'ps|grep frida-server']
     res = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     if 'frida-server' in res.stdout.read().decode('utf-8').strip():
         return True
@@ -69,7 +72,8 @@ def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
         device_switch = ''
 
     os.system(f'''{adb_path} {device_switch} push {os.path.abspath(src)} {dst}''')
-    os.system(f'''{adb_path} {device_switch} shell "su -c 'chmod +x {os.path.join(dst, file_name)}'"''')
+    # os.system(f'''{adb_path} {device_switch} shell "su -c 'chmod +x {os.path.join(dst, file_name)}'"''')
+    os.system(f'''{adb_path} {device_switch} shell "su -c 'chmod 777 {os.path.join(dst, file_name)}'"''')
     os.system(f'''{adb_path} {device_switch} forward tcp:27042 tcp:27042''')
     os.system(f'''{adb_path} {device_switch} forward tcp:27043 tcp:27043''')
     # os.system(f'''{adb_path} shell "su -c '{os.path.join(dst, file_name)} &'"''')
@@ -79,6 +83,7 @@ def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
     else:
         subprocess.Popen([adb_path, 'shell', f"su -c '{os.path.join(dst, file_name)} &'"])
     logger.info('frida-server started')
+    print('ok')
 
 
 def force_stop_application_by_identifier(identifier, device_id):
