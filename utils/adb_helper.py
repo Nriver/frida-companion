@@ -111,3 +111,36 @@ def get_package_list():
 def is_package_installed(package_name):
     """check package exists"""
     return package_name in get_package_list()
+
+
+def extract_files(android_path, output_directory, tmp_directory='/sdcard/_adb_cache'):
+    """
+    extract android files
+    copy files to a temporary folder in sdcard then pull it with adb and clean up
+    """
+    res = subprocess.run(
+        [adb_path, 'shell', f"""su -c 'mkdir {tmp_directory} && cp -r {android_path}/* {tmp_directory};'"""],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
+    if res.stderr:
+        print(res.stderr)
+        # delete if already exist
+        if 'File exists' in res.stderr:
+            subprocess.run([adb_path, 'shell', f"""rm -r {tmp_directory}"""], stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE, encoding="utf-8")
+            res = subprocess.run(
+                [adb_path, 'shell', f"""su -c 'mkdir {tmp_directory} && cp -r {android_path}/* {tmp_directory};'"""],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
+        # target is a file
+        if 'Not a directory' in res.stderr:
+            res = subprocess.run([adb_path, 'shell', f"""su -c 'cp {android_path} {tmp_directory};'"""],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
+
+    res = subprocess.run([adb_path, 'pull', tmp_directory, output_directory], stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, encoding="utf-8")
+    print(res.stdout)
+    subprocess.run([adb_path, 'shell', f"rm -r {tmp_directory}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                   encoding="utf-8")
+
+
+if __name__ == '__main__':
+    extract_files('/data/user/0/mark.via', './tmp')
