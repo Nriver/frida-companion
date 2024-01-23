@@ -1,8 +1,9 @@
-from __main__ import socketio
+
 
 from flask import request, render_template
 
 from . import bp_io
+from .. import socketio
 
 
 @bp_io.route('/test', methods=['GET', 'POST'])

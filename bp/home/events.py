@@ -1,9 +1,9 @@
 import logging
-from __main__ import socketio
 
 import frida
 from flask import render_template
 
+from bp import socketio
 from utils.adb_helper import is_frida_server_running
 from utils.cache_helper import cache
 from utils.frida_helper import get_device_list, get_application_list, run_frida_server, get_device_system, \

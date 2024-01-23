@@ -1,7 +1,8 @@
 import logging
-from __main__ import socketio
 
 from flask import render_template
+
+from bp import socketio
 
 logger = logging.getLogger(__name__)
 
@@ -21,5 +22,5 @@ def refresh_device(message):
 
     socketio.emit('load_class_response',
                   {'data': {'class_list_html': class_list_html}})
-    
+
     return class_list

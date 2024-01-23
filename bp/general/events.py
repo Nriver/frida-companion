@@ -1,5 +1,6 @@
 import logging
-from __main__ import socketio
+
+from bp import socketio
 
 logger = logging.getLogger(__name__)
 
