@@ -2,7 +2,7 @@
 
 !!! Project is still under development, not production ready, yet 😄 !!!
 
-User-friendly frida automation platform. Made with 😍 and ✌️.
+Just a frida assistant tool. Made with love and peace.
 
 # Feature
 
