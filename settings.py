@@ -4,8 +4,8 @@ DEBUG = True
 # USE_PROXY = False
 USE_PROXY = True
 PROXIES = {
-    "http": "http://127.0.0.1:10809",
-    "https": "http://127.0.0.1:10809"
+    "http": "http://127.0.0.1:20809",
+    "https": "http://127.0.0.1:20809"
 }
 
 # frida-server version override

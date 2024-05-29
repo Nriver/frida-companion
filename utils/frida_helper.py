@@ -173,7 +173,7 @@ def get_application_list(device_id=None):
             if not is_frida_server_running(device_id):
                 run_frida_server(device_id)
 
-        applications = device.enumerate_applications()
+        applications = device.enumerate_applications(scope='full')
         for x in applications:
             row = {
                 'name': x.name,
