@@ -4,6 +4,7 @@ from datetime import datetime
 import frida
 
 from settings import log_file, check_update_on_start, frida_update_interval
+from tools.adb_tool import adb_connect_from_file
 from utils.adb_helper import start_adb
 from utils.cache_helper import cache
 from utils.date_helper import timestamp_diff_in_days
@@ -29,6 +30,7 @@ if __name__ == '__main__':
                                                           datetime.now().timestamp()) > frida_update_interval:
             check_frida_update()
 
+    adb_connect_from_file("./ADB_IP")
     start_adb()
     logger.info(frida.get_usb_device())
 
