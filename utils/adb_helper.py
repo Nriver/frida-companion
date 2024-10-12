@@ -71,13 +71,20 @@ def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
     else:
         device_switch = ''
 
+    # kill old frida process
+    os.system(f'''{adb_path} {device_switch} shell "su -c 'pkill -9 frida'"''')
+
+    # push new file
     os.system(f'''{adb_path} {device_switch} push {os.path.abspath(src)} {dst}''')
     # os.system(f'''{adb_path} {device_switch} shell "su -c 'chmod +x {os.path.join(dst, file_name)}'"''')
     os.system(f'''{adb_path} {device_switch} shell "su -c 'chmod 777 {os.path.join(dst, file_name)}'"''')
+
+    # port forward
     os.system(f'''{adb_path} {device_switch} forward tcp:27042 tcp:27042''')
     os.system(f'''{adb_path} {device_switch} forward tcp:27043 tcp:27043''')
-    # os.system(f'''{adb_path} shell "su -c '{os.path.join(dst, file_name)} &'"''')
+
     # os.system will hang on this execution, so use subprocess here
+    # os.system(f'''{adb_path} shell "su -c '{os.path.join(dst, file_name)} &'"''')
     if device_id:
         subprocess.Popen([adb_path, '-s', device_id, 'shell', f"su -c '{os.path.join(dst, file_name)} &'"])
     else:

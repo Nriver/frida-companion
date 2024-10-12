@@ -3,6 +3,7 @@ import os
 import platform
 from datetime import datetime
 from shutil import copyfile
+import importlib.metadata
 
 import frida
 from tabulate import tabulate
@@ -20,17 +21,31 @@ def get_latest_frida():
     return get_latest_repo_release('frida/frida')
 
 
-def check_frida_update():
+def check_frida_update(frida_version=None, frida_tools_version=None):
     """compare current installed frida and latest one"""
     from utils.cache_helper import cache
     logger.info('check update')
-    latest_ver = get_latest_frida()
+
+    if frida_version:
+        target_ver = frida_version
+    else:
+        target_ver = get_latest_frida()
     current_ver = frida.__version__
-    logger.info(f'Your frida is {current_ver}, latest frida is {latest_ver}')
-    if latest_ver != current_ver:
+    logger.info(f'Your frida is {current_ver}, latest frida is {target_ver}')
+    if target_ver != current_ver:
         print(f'update detected, please update with command:')
-        print('python3 -m pip install frida frida-tools -U --user')
+        if not frida_version:
+            print('python3 -m pip install frida frida-tools -U --user')
+        else:
+            print(f'python3 -m pip install frida=={frida_version} -U --user')
         exit()
+
+    if frida_tools_version:
+        current_tools_ver = importlib.metadata.version("frida-tools")
+        if frida_tools_version != current_tools_ver:
+            print(f'python3 -m pip install frida-tools=={frida_tools_version} -U --user')
+            exit()
+
 
     cache.set_frida_update_time(datetime.now().timestamp())
     logger.info('Good to go')
@@ -89,19 +104,27 @@ def get_all_frida_gadget_for_android(frida_version):
         get_frida_gadget(frida_version, device_arch)
 
 
-def check_frida_server_update():
+def check_frida_server_update(frida_version=None):
     """check and get latest frida-server"""
     device_arch = get_android_architecture()
-    frida_version = frida.__version__
+    if frida_version:
+        print("use specific frida version")
+    else:
+        print("use current installed version")
+        frida_version = frida.__version__
 
     get_frida_server(frida_version, device_arch)
     get_frida_gadget(frida_version, device_arch)
 
 
-def run_frida_server(device_id=None, target_path='/data/local/tmp/'):
+def run_frida_server(device_id=None, target_path='/data/local/tmp/', frida_version=None):
     """run frida-server"""
     device_arch = get_android_architecture(device_id)
-    frida_version = frida.__version__
+    if frida_version:
+        print(f"use specific frida version {frida_version}")
+    else:
+        frida_version = frida.__version__
+        print(f"use current installed version {frida_version}")
     frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
     adb_push_and_run_frida_server(os.path.join(frida_server_save_path, frida_server_file), target_path,
                                   frida_server_file, device_id)
