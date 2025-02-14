@@ -26,12 +26,15 @@ if __name__ == '__main__':
 
     # specify an old version, leave empty to use latest version
     # some frida version are broken, good versions: 16.0.3
+    # pip install frida==16.0.3 frida-tools==12.0.4
     # see: https://github.com/frida/frida/issues/2360
     # frida_version = ""
     frida_version = "16.0.3"
-    # frida_tools_version = ""
+    # frida_version = "16.6.6"
+    frida_tools_version = "12.0.4"
     # frida_tools_version = "12.5.1"
-    frida_tools_version = "13.3.0"
+    # frida_tools_version = "13.3.0"
+    # frida_tools_version = "13.6.1"
 
     if check_update_on_start:
         last_update_time = cache.get_frida_update_time()
@@ -40,7 +43,7 @@ if __name__ == '__main__':
             # check_frida_update()
             check_frida_update(frida_version=frida_version, frida_tools_version=frida_tools_version)
 
-    USE_WIRELESS = True
+    USE_WIRELESS = False
     if USE_WIRELESS:
         adb_connect_from_file("./ADB_IP")
 
