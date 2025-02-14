@@ -40,12 +40,13 @@ if __name__ == '__main__':
             # check_frida_update()
             check_frida_update(frida_version=frida_version, frida_tools_version=frida_tools_version)
 
-    USE_WIRELESS = False
+    USE_WIRELESS = True
     if USE_WIRELESS:
         adb_connect_from_file("./ADB_IP")
 
     start_adb()
-    logger.info(frida.get_usb_device())
+    if not USE_WIRELESS:
+        logger.info(frida.get_usb_device())
 
     # check frida-server
     check_frida_server_update(frida_version=frida_version)

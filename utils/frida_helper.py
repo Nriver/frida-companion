@@ -172,7 +172,30 @@ def get_application_list(device_id=None):
     else:
         device_args = {}
         device_manager = frida.get_device_manager()
-        device = device_manager.get_usb_device(**device_args)
+
+        SWITCH = 20
+
+        if SWITCH == 10:
+            device = device_manager.get_usb_device(**device_args)
+        elif SWITCH == 20:
+            # Enumerate all devices
+            devices = device_manager.enumerate_devices()
+
+            # Try to find a USB or Wi-Fi device
+            for d in devices:
+                if d.type == 'usb':
+                    # If a USB device is found, select it
+                    device = d
+                    break
+                elif d.type == 'remote':
+                    # If a Wi-Fi (remote) device is found, select it
+                    device = d
+                    break
+
+            if not device:
+                raise Exception("No compatible device found (USB or Remote).")
+
+        print(f"Device type: {device.type}")
 
     apps = []
     if device.type == 'local':
