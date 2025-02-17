@@ -48,8 +48,6 @@ if __name__ == '__main__':
         adb_connect_from_file("./ADB_IP")
 
     start_adb()
-    if not USE_WIRELESS:
-        logger.info(frida.get_usb_device())
 
     # check frida-server
     check_frida_server_update(frida_version=frida_version)
