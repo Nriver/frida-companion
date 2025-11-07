@@ -4,6 +4,7 @@ from datetime import datetime
 import frida
 
 from settings import log_file, check_update_on_start, frida_update_interval
+from tools.adb_common import set_adb_device_from_file
 from tools.adb_tool import adb_connect_from_file
 from utils.adb_helper import start_adb
 from utils.cache_helper import cache
@@ -22,6 +23,9 @@ fh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 
 if __name__ == '__main__':
+
+    set_adb_device_from_file('./ADB_IP_ace')
+
     print('Frida-companion ;)')
 
     # specify an old version, leave empty to use latest version
@@ -29,12 +33,10 @@ if __name__ == '__main__':
     # pip install frida==16.0.3 frida-tools==12.0.4
     # see: https://github.com/frida/frida/issues/2360
     # frida_version = ""
-    frida_version = "16.0.3"
-    # frida_version = "16.6.6"
-    frida_tools_version = "12.0.4"
-    # frida_tools_version = "12.5.1"
-    # frida_tools_version = "13.3.0"
-    # frida_tools_version = "13.6.1"
+    # frida_version = "16.0.3"
+    frida_version = "16.6.6"
+    # frida_tools_version = "12.0.4"
+    frida_tools_version = "13.6.1"
 
     if check_update_on_start:
         last_update_time = cache.get_frida_update_time()
@@ -42,10 +44,6 @@ if __name__ == '__main__':
                                                           datetime.now().timestamp()) > frida_update_interval:
             # check_frida_update()
             check_frida_update(frida_version=frida_version, frida_tools_version=frida_tools_version)
-
-    USE_WIRELESS = False
-    if USE_WIRELESS:
-        adb_connect_from_file("./ADB_IP")
 
     start_adb()
 
