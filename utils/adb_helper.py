@@ -109,26 +109,27 @@ def extract_files(android_path, output_directory, tmp_directory='/sdcard/_adb_ca
     extract android files
     copy files to a temporary folder in sdcard then pull it with adb and clean up
     """
-    cmd = ['shell', 'mkdir {tmp_directory} && cp -r {android_path}/* {tmp_directory};']
+    cmd = ['shell', f'mkdir {tmp_directory} && cp -r {android_path}/* {tmp_directory};']
     res = execute_with_root(cmd, device_id=device_id)
     if res:
         print(res)
         # delete if already exist
         if 'File exists' in res.stderr:
             cmd = ['shell', f"""rm -r {tmp_directory}"""]
-            res = run_adb_command(cmd, device_id=device_id)
+            run_adb_command(cmd, device_id=device_id)
             cmd = ['shell', f"""su -c 'mkdir {tmp_directory} && cp -r {android_path}/* {tmp_directory};'"""]
             res = run_adb_command(cmd, device_id=device_id)
         # target is a file
         if 'Not a directory' in res.stderr:
-            res = subprocess.run([adb_path, 'shell', f"""su -c 'cp {android_path} {tmp_directory};'"""],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
+            cmd =['shell', f"""su -c 'cp {android_path} {tmp_directory};'"""]
+            res = run_adb_command(cmd, device_id=device_id)
 
-    res = subprocess.run([adb_path, 'pull', tmp_directory, output_directory], stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE, encoding="utf-8")
-    print(res.stdout)
-    subprocess.run([adb_path, 'shell', f"rm -r {tmp_directory}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                   encoding="utf-8")
+    cmd = ['pull', tmp_directory, output_directory]
+    res = run_adb_command(cmd, device_id=device_id)
+
+    print(res)
+    cmd = ['shell', f"rm -r {tmp_directory}"]
+    res = run_adb_command(cmd, device_id=device_id)
 
 
 if __name__ == '__main__':
