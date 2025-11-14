@@ -167,6 +167,10 @@ def get_device_type(device_id):
 
 def get_application_list(device_id=None):
     """application list"""
+
+    if not device_id:
+        device_id = os.environ.get('ADB_DEVICE_SERIAL')
+
     if device_id:
         device = get_device(device_id)
     else:
