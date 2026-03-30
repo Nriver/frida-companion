@@ -59,6 +59,7 @@ def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
 
     # kill old frida process
     execute_with_root(['shell', 'pkill -9 frida'], device_id=device_id)
+    execute_with_root(['shell', 'pkill -9 frida-server'], device_id=device_id)
 
     # push new file
     run_adb_command(f'''push {os.path.abspath(src)} {dst}''', device_id=device_id)
