@@ -5,6 +5,7 @@ ADB_IP_ace
 frida_exe/
 companion.log
 cache.json
+utils/tmp/_adb_cache/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
