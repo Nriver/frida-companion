@@ -63,7 +63,7 @@ ksu-frida-auth/dist/frida-auth-<version>.zip
 1. 把 zip 传到手机，例如：
 
    ```sh
-   adb push ksu-frida-auth/dist/frida-auth-0.1.0.zip /sdcard/Download/
+   adb push ksu-frida-auth/dist/frida-auth-0.2.0.zip /sdcard/Download/
    ```
 
 2. 打开 **KernelSU Manager → 模块 → 从本地安装**，选择该 zip。
@@ -72,8 +72,8 @@ ksu-frida-auth/dist/frida-auth-<version>.zip
 也可以用 `ksud`：
 
 ```sh
-adb push ksu-frida-auth/dist/frida-auth-0.1.0.zip /data/local/tmp/
-adb shell 'su -c "ksud module install /data/local/tmp/frida-auth-0.1.0.zip"'
+adb push ksu-frida-auth/dist/frida-auth-0.2.0.zip /data/local/tmp/
+adb shell 'su -c "ksud module install /data/local/tmp/frida-auth-0.2.0.zip"'
 ```
 
 ## 使用
@@ -122,7 +122,7 @@ su -c "$BIN autostart on"           # 开机自动启动
 ## 与 frida-companion 配合
 
 本项目的 `test.py` 已改为调用 `run_frida_server_with_auth()`：检测到 `frida-auth`
-模块时，会自动通过 `frida-auth start` 带上 shim 启动，并校验 `preload` / `shim_loaded`
+模块时，会自动通过 `frida-auth start` 带上 shim 启动，并校验 `ld_preload` / `shim_loaded`
 状态；未安装模块时回退到原来的启动流程。
 
 如果不是通过 `test.py` 启动，需要手动让 server 带上 shim，否则授权不生效。
@@ -145,6 +145,11 @@ LD_PRELOAD=/data/adb/modules/frida-auth/lib/arm64-v8a/libfrida_auth.so \
   - 使用 `sharedUserId` 的多个 App 会一起授权
   - App 的 isolated 子进程（UID 90000+）默认不放行
 - 必须通过本模块启动 frida-server（WebUI / `frida-auth start`），否则 shim 不加载。
+- 模块启动 frida-server 时默认加 `-P`（禁用 frida 17 的 zymbiote preload）。
+  不加的话 frida 会 patch zygote 并拦截所有 App 启动，App 可能卡在启动画面。
+- frida 的 `spawn` 走 zymbiote 通道，不经过 ptrace，因此 shim 的 UID 门禁主要对
+  `attach` 生效。frida-companion 的 WebUI 会在 spawn 前检查白名单；如果直接用
+  `frida -f`，请确认目标已授权。
 - 未在目标设备上做完整兼容性测试；不同 KernelSU/SukiSU 版本的 `sepolicy.rule`
   解析能力可能不同。
 

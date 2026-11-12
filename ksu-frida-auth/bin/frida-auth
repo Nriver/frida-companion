@@ -149,7 +149,9 @@ cmd_start() {
 
     cmd_stop >/dev/null 2>&1
     sleep 1
-    env LD_PRELOAD="$lib" "$server" -D >/dev/null 2>&1
+    # -P disables frida 17's zymbiote preload. Without it frida patches zygote
+    # and intercepts every app launch, which can leave apps stuck at splash.
+    env LD_PRELOAD="$lib" "$server" -D -P >/dev/null 2>&1
     sleep 1
 
     pid=$(frida_pids | head -n 1)
@@ -163,6 +165,10 @@ cmd_stop() {
         pkill -9 -f 'frida-server' 2>/dev/null
     fi
     for p in $(frida_pids); do
+        kill -9 "$p" 2>/dev/null
+    done
+    # frida's crash reporter helper (logcat -b crash -B) can outlive the server
+    for p in $(ps -A -o PID,ARGS 2>/dev/null | grep '[l]ogcat -b crash -B' | awk '{print $1}'); do
         kill -9 "$p" 2>/dev/null
     done
     echo "stopped"
@@ -198,11 +204,11 @@ cmd_status() {
     echo "pid=$first"
 
     if tr '\0' '\n' </proc/"$first"/environ 2>/dev/null | grep -q '^LD_PRELOAD='; then
-        echo "preload=yes"
-        echo "ld_preload=$(tr '\0' '\n' </proc/"$first"/environ 2>/dev/null | sed -n 's/^LD_PRELOAD=//p' | head -n 1)"
+        echo "ld_preload=yes"
+        echo "ld_preload_path=$(tr '\0' '\n' </proc/"$first"/environ 2>/dev/null | sed -n 's/^LD_PRELOAD=//p' | head -n 1)"
     else
-        echo "preload=no"
-        echo "ld_preload="
+        echo "ld_preload=no"
+        echo "ld_preload_path="
     fi
 
     if grep -q 'libfrida_auth' /proc/"$first"/maps 2>/dev/null; then

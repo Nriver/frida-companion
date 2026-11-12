@@ -4,7 +4,7 @@ import frida
 from flask import render_template
 
 from bp import socketio
-from utils.adb_helper import is_frida_server_running
+from utils.adb_helper import is_frida_server_running, is_app_authorized
 from utils.cache_helper import cache
 from utils.frida_helper import get_device_list, get_application_list, run_frida_server, get_device_system, \
     get_all_frida_gadget_for_android
@@ -62,33 +62,54 @@ def start_application(message):
     if device_system == 'android':
         if not is_frida_server_running(device_id):
             run_frida_server(device_id)
+        if not is_app_authorized(application, device_id):
+            print(f'[frida-auth] {application} is not authorized')
+            socketio.emit('start_application_response',
+                          {'success': False, 'error': f'{application} is not authorized in frida-auth WebUI'})
+            return False
         print('server started!')
+
     pid = None
     try:
-        pid = device.spawn([application, ])
-    except Exception as e:
-        if 'need Gadget to attach' in str(e):
+        try:
+            pid = device.spawn([application, ])
+        except Exception as e:
+            if 'need Gadget to attach' not in str(e):
+                raise
             # device_arch = get_android_architecture(device_id)
             frida_version = frida.__version__
             # get_frida_gadget(frida_version, device_arch)
             get_all_frida_gadget_for_android(frida_version)
             pid = device.spawn([application, ])
-    if not pid:
-        print('spawn error')
-        socketio.emit('start_application_response', {'success': False})
+
+        if not pid:
+            raise RuntimeError('spawn error')
+
+        session = device.attach(pid)
+        print(session)
+
+        # startup script
+        startup_script_string = f'''console.log("hello, {application} started, startup script executed!")'''
+        script = session.create_script(startup_script_string)
+        script.load()
+
+        device.resume(pid)
+        # session.detach()
+
+        cache.save_obj('session', session)
+    except Exception as e:
+        print('start application failed:', e)
+        # Never leave a frida-spawned app suspended at its splash screen.
+        if pid:
+            try:
+                device.kill(pid)
+            except Exception:
+                try:
+                    device.resume(pid)
+                except Exception:
+                    pass
+        socketio.emit('start_application_response', {'success': False, 'error': str(e)})
         return False
-    session = device.attach(pid)
-    print(session)
-
-    # startup script
-    startup_script_string = f'''console.log("hello, {application} started, startup script executed!")'''
-    script = session.create_script(startup_script_string)
-    script.load()
-
-    device.resume(pid)
-    # session.detach()
-
-    cache.save_obj('session', session)
 
     print('start complete')
 

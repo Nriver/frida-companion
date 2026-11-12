@@ -156,7 +156,7 @@ def run_frida_server_with_auth(device_id=None, target_path='/data/local/tmp/', f
     print('[frida-auth] module status:')
     print(status or '<no output>')
 
-    enforced = 'preload=yes' in (status or '') and 'shim_loaded=yes' in (status or '')
+    enforced = 'ld_preload=yes' in (status or '') and 'shim_loaded=yes' in (status or '')
     if not enforced:
         print('[frida-auth] WARNING: shim not loaded, authorization is NOT enforced')
     return enforced

@@ -700,7 +700,7 @@
                     var st = parseStatus(out);
                     var shim = st.shim === "yes";
                     var running = st.server === "running";
-                    var preload = st.preload === "yes";
+                    var preload = st.ld_preload === "yes";
                     var loaded = st.shim_loaded === "yes";
                     var enforced = running && preload && loaded;
 

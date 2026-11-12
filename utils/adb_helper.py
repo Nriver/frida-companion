@@ -56,12 +56,61 @@ def get_android_architecture(device_id=None):
 
 
 FRIDA_AUTH_BIN = '/data/adb/modules/frida-auth/bin/frida-auth'
+FRIDA_AUTH_ALLOWLIST = '/data/adb/frida-auth/allow.list'
 
 
 def is_frida_auth_installed(device_id=None):
     """Check whether the frida-auth KernelSU module is active on the device."""
     res = execute_with_root(f'test -x {FRIDA_AUTH_BIN} && echo yes', device_id=device_id)
     return 'yes' in (res or '')
+
+
+def get_frida_auth_allowlist(device_id=None):
+    """Return a list of (uid, package) entries from the frida-auth allowlist."""
+    res = execute_with_root(f'cat {FRIDA_AUTH_ALLOWLIST}', device_id=device_id)
+    entries = []
+    for line in (res or '').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split()
+        if len(parts) >= 2:
+            entries.append((parts[0], parts[1]))
+    return entries
+
+
+def get_package_uid(package_name, device_id=None):
+    """Resolve the UID of an installed package, or None."""
+    res = run_adb_command(['shell', 'cmd', 'package', 'list', 'packages', '-U'], device_id=device_id)
+    if not res:
+        res = run_adb_command(['shell', 'pm', 'list', 'packages', '-U'], device_id=device_id)
+    for line in (res or '').splitlines():
+        parts = line.split()
+        if not parts or parts[0] != f'package:{package_name}':
+            continue
+        for part in parts[1:]:
+            if part.startswith('uid:'):
+                return part[4:]
+    return None
+
+
+def is_app_authorized(package_name, device_id=None):
+    """Check the frida-auth allowlist for a package.
+
+    Returns True when the module is not installed, preserving legacy behaviour.
+    """
+    if not is_frida_auth_installed(device_id):
+        return True
+
+    allow = get_frida_auth_allowlist(device_id)
+    for uid, pkg in allow:
+        if pkg == package_name:
+            return True
+
+    uid = get_package_uid(package_name, device_id=device_id)
+    if uid is None:
+        return False
+    return any(entry_uid == uid for entry_uid, _ in allow)
 
 
 def push_frida_server(src, dst='/data/local/tmp/', file_name=None, device_id=None):
@@ -100,11 +149,11 @@ def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
         print('[frida-auth] status:\n' + (status or '<no output>'))
         if 'shim_loaded=yes' not in (status or ''):
             logger.warning('frida-auth shim was not loaded, authorization is disabled; starting directly')
-            res = execute_with_root(server_path, device_id=device_id, nohup=True, return_pid=True)
+            res = execute_with_root(f'{server_path} -P', device_id=device_id, nohup=True, return_pid=True)
             logger.info(f'frida-server started, pid is {res}')
     else:
         # os.system will hang on this execution, so use subprocess here
-        res = execute_with_root(server_path, device_id=device_id, nohup=True, return_pid=True)
+        res = execute_with_root(f'{server_path} -P', device_id=device_id, nohup=True, return_pid=True)
         logger.info(f'frida-server started, pid is {res}')
 
     print('ok')
