@@ -161,8 +161,19 @@ cmd_start() {
 }
 
 cmd_stop() {
+    # SIGTERM first: frida-server runs RoboLauncher.close(), which reverts the
+    # zygote patches created by spawn. SIGKILL leaves those patches behind.
     if command -v pkill >/dev/null 2>&1; then
-        pkill -9 -f 'frida-server' 2>/dev/null
+        pkill -TERM -f 'frida-server' 2>/dev/null
+    fi
+    i=0
+    while [ "$i" -lt 5 ]; do
+        [ -z "$(frida_pids)" ] && break
+        sleep 1
+        i=$((i + 1))
+    done
+    if command -v pkill >/dev/null 2>&1; then
+        pkill -KILL -f 'frida-server' 2>/dev/null
     fi
     for p in $(frida_pids); do
         kill -9 "$p" 2>/dev/null
@@ -194,7 +205,8 @@ cmd_status() {
     pids=$(frida_pids)
     if [ -z "$pids" ]; then
         echo "server=stopped"
-        echo "preload=no"
+        echo "ld_preload=no"
+        echo "ld_preload_path="
         echo "pid=none"
         return 0
     fi

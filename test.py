@@ -62,4 +62,22 @@ if __name__ == '__main__':
     # show application list
     get_application_list()
 
+    print()
+    print('=' * 64)
+    print('重要提示：')
+    print('frida -U -f 在 Android + Frida 17 上会走 zymbiote spawn：')
+    print('  - 它会 patch zygote/zygote64/usap')
+    print('  - 之后所有 App 启动都会被 frida 拦截')
+    print('  - 未授权或握手不顺利的 App 就会卡在启动 logo')
+    print()
+    print('所以：')
+    print('  1) 用完 frida -U -f <包名> 后，请执行：')
+    print('       python3 stop_frida.py')
+    print('     会优雅停止 frida-server 并还原 zygote 补丁')
+    print('  2) 如果不需要早期 hook，推荐先打开 App，再用 attach：')
+    print('       frida -U -n <包名>')
+    print('       frida -U -p <pid>')
+    print('=' * 64)
+    print()
+
     print('finished !')

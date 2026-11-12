@@ -63,7 +63,7 @@ ksu-frida-auth/dist/frida-auth-<version>.zip
 1. 把 zip 传到手机，例如：
 
    ```sh
-   adb push ksu-frida-auth/dist/frida-auth-0.2.0.zip /sdcard/Download/
+   adb push ksu-frida-auth/dist/frida-auth-0.2.1.zip /sdcard/Download/
    ```
 
 2. 打开 **KernelSU Manager → 模块 → 从本地安装**，选择该 zip。
@@ -72,8 +72,8 @@ ksu-frida-auth/dist/frida-auth-<version>.zip
 也可以用 `ksud`：
 
 ```sh
-adb push ksu-frida-auth/dist/frida-auth-0.2.0.zip /data/local/tmp/
-adb shell 'su -c "ksud module install /data/local/tmp/frida-auth-0.2.0.zip"'
+adb push ksu-frida-auth/dist/frida-auth-0.2.1.zip /data/local/tmp/
+adb shell 'su -c "ksud module install /data/local/tmp/frida-auth-0.2.1.zip"'
 ```
 
 ## 使用
@@ -147,7 +147,21 @@ LD_PRELOAD=/data/adb/modules/frida-auth/lib/arm64-v8a/libfrida_auth.so \
 - 必须通过本模块启动 frida-server（WebUI / `frida-auth start`），否则 shim 不加载。
 - 模块启动 frida-server 时默认加 `-P`（禁用 frida 17 的 zymbiote preload）。
   不加的话 frida 会 patch zygote 并拦截所有 App 启动，App 可能卡在启动画面。
-- frida 的 `spawn` 走 zymbiote 通道，不经过 ptrace，因此 shim 的 UID 门禁主要对
+- `frida -U -f` 在 Android + Frida 17 上会走 zymbiote spawn：
+  - 它会 patch `zygote`/`zygote64`/`usap`
+  - 之后所有 App 启动都会被 frida 拦截
+  - 未授权或握手不顺利的 App 就会卡在启动 logo
+
+  所以用完 `frida -U -f <包名>` 后请执行 `python3 stop_frida.py`
+  （或 `frida-auth stop`）优雅停止 server，还原 zygote 补丁；也可以直接重启设备。
+  旧的 `kill -9` 不会还原补丁。
+- 如果不需要早期 hook，推荐先正常打开 App，再用 attach：
+
+  ```sh
+  frida -U -n <包名>
+  frida -U -p <pid>
+  ```
+- frida 的 `spawn` 走 zymbiote，不经过 ptrace，因此 shim 的 UID 门禁主要对
   `attach` 生效。frida-companion 的 WebUI 会在 spawn 前检查白名单；如果直接用
   `frida -f`，请确认目标已授权。
 - 未在目标设备上做完整兼容性测试；不同 KernelSU/SukiSU 版本的 `sepolicy.rule`

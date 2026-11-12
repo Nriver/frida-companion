@@ -1,12 +1,16 @@
 import logging
 import os
 import subprocess
+import time
 
 from settings import adb_path
 from tools.adb_common import run_adb_command, set_adb_device_from_file, execute_with_root
 
 logger = logging.getLogger(__name__)
 adb_path = os.path.abspath(os.path.expanduser(adb_path))
+
+FRIDA_AUTH_BIN = '/data/adb/modules/frida-auth/bin/frida-auth'
+FRIDA_AUTH_ALLOWLIST = '/data/adb/frida-auth/allow.list'
 
 
 def start_adb(device_id=None):
@@ -22,23 +26,32 @@ def is_android(device_id=None):
 
 
 def is_frida_server_running(device_id=None):
-    cmd = ['shell', 'ps|grep frida-server']
+    cmd = ['shell', "ps -A -o ARGS 2>/dev/null | grep '[f]rida-server' || true"]
     res = run_adb_command(cmd, device_id=device_id)
-    if 'frida-server' in res.strip():
-        return True
-    return False
+    return 'frida-server' in (res or '')
+
+
+def stop_frida_server_gracefully(device_id=None):
+    """Stop frida-server with SIGTERM first so it can revert zygote patches.
+
+    When the frida-auth module is active, use its stop command so the crash
+    reporter child is cleaned up as well.
+    """
+    if is_frida_auth_installed(device_id):
+        res = execute_with_root(f'{FRIDA_AUTH_BIN} stop', device_id=device_id)
+        logger.info(f'frida-auth stop: {res}')
+        return res
+
+    execute_with_root('pkill -TERM -f frida-server', device_id=device_id)
+    time.sleep(1.5)
+    execute_with_root('pkill -KILL -f frida-server', device_id=device_id)
+    execute_with_root('pkill -KILL -f frida-helper', device_id=device_id)
+    return None
 
 
 def stop_frida_server(device_id):
-    cmd = ['shell', 'ps|grep frida']
-    res = run_adb_command(cmd, device_id=device_id)
-    print(res)
-    if res:
-        for x in res.split('\n'):
-            pid = x.split()[1]
-            cmd = [adb_path, '-s', device_id, 'shell', f'''"su -c 'kill {pid}'"''']
-            subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        print('frida-server stopped')
+    stop_frida_server_gracefully(device_id)
+    print('frida-server stopped')
     return
 
 
@@ -53,10 +66,6 @@ def get_android_architecture(device_id=None):
     else:
         arch = res.strip()
     return arch
-
-
-FRIDA_AUTH_BIN = '/data/adb/modules/frida-auth/bin/frida-auth'
-FRIDA_AUTH_ALLOWLIST = '/data/adb/frida-auth/allow.list'
 
 
 def is_frida_auth_installed(device_id=None):
@@ -115,9 +124,8 @@ def is_app_authorized(package_name, device_id=None):
 
 def push_frida_server(src, dst='/data/local/tmp/', file_name=None, device_id=None):
     """Stop old frida processes, push the server and set up port forwards."""
-    # kill old frida process
-    execute_with_root(['shell', 'pkill -9 frida'], device_id=device_id)
-    execute_with_root(['shell', 'pkill -9 frida-server'], device_id=device_id)
+    # Stop the old server gracefully so it can revert zygote patches.
+    stop_frida_server_gracefully(device_id)
 
     # push new file
     run_adb_command(f'''push {os.path.abspath(src)} {dst}''', device_id=device_id)
