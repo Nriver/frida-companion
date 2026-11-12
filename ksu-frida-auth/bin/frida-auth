@@ -1,0 +1,263 @@
+#!/system/bin/sh
+
+set -u
+
+MODDIR=$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)
+DATA=/data/adb/frida-auth
+ALLOW=$DATA/allow.list
+SERVER_PATH_FILE=$DATA/server_path
+AUTOSTART_FILE=$DATA/autostart
+
+ensure() {
+    mkdir -p "$DATA" 2>/dev/null
+    chmod 0700 "$DATA" 2>/dev/null
+    [ -f "$ALLOW" ] || : > "$ALLOW"
+    chmod 0600 "$ALLOW" 2>/dev/null
+}
+
+abi_lib() {
+    abi=$(getprop ro.product.cpu.abi 2>/dev/null)
+    case "$abi" in
+    arm64*) dir=arm64-v8a ;;
+    armeabi* | arm*) dir=armeabi-v7a ;;
+    x86_64*) dir=x86_64 ;;
+    x86*) dir=x86 ;;
+    *) dir=arm64-v8a ;;
+    esac
+    echo "$MODDIR/lib/$dir/libfrida_auth.so"
+}
+
+abi_lib_for_server() {
+    server=${1:-}
+    case "$server" in
+    *-android-arm64*) echo "$MODDIR/lib/arm64-v8a/libfrida_auth.so" ;;
+    *-android-arm*) echo "$MODDIR/lib/armeabi-v7a/libfrida_auth.so" ;;
+    *-android-x86_64*) echo "$MODDIR/lib/x86_64/libfrida_auth.so" ;;
+    *-android-x86*) echo "$MODDIR/lib/x86/libfrida_auth.so" ;;
+    *) abi_lib ;;
+    esac
+}
+
+pm_dump() {
+    pm list packages -U 2>/dev/null || cmd package list packages -U 2>/dev/null
+}
+
+cmd_list() {
+    ensure
+    cat "$ALLOW"
+}
+
+cmd_set() {
+    pkg=${1:-}
+    uid=${2:-}
+    if [ -z "$pkg" ] || [ -z "$uid" ]; then
+        echo "usage: frida-auth set <package> <uid>" >&2
+        return 2
+    fi
+    case "$uid" in
+    '' | *[!0-9]*)
+        echo "invalid uid: $uid" >&2
+        return 2
+        ;;
+    esac
+
+    ensure
+    tmp="$ALLOW.tmp.$$"
+    awk -v p="$pkg" '$2 != p' "$ALLOW" >"$tmp" 2>/dev/null
+    echo "$uid $pkg" >>"$tmp"
+    mv "$tmp" "$ALLOW"
+    chmod 0600 "$ALLOW" 2>/dev/null
+}
+
+cmd_del() {
+    pkg=${1:-}
+    if [ -z "$pkg" ]; then
+        echo "usage: frida-auth del <package>" >&2
+        return 2
+    fi
+
+    ensure
+    tmp="$ALLOW.tmp.$$"
+    awk -v p="$pkg" '$2 != p' "$ALLOW" >"$tmp" 2>/dev/null
+    mv "$tmp" "$ALLOW"
+    chmod 0600 "$ALLOW" 2>/dev/null
+}
+
+cmd_resolve() {
+    ensure
+    [ -s "$ALLOW" ] || return 0
+
+    dump=$(pm_dump)
+    [ -n "$dump" ] || return 0
+
+    tmp="$ALLOW.tmp.$$"
+    : >"$tmp"
+    while read -r olduid pkg rest; do
+        [ -n "${olduid:-}" ] || continue
+        [ -n "${pkg:-}" ] || continue
+        case "$pkg" in
+        \#*) continue ;;
+        esac
+
+        newuid=$(printf '%s\n' "$dump" | awk -v p="$pkg" '
+            $1 == "package:" p {
+                for (i = 2; i <= NF; i++) {
+                    if ($i ~ /^uid:/) {
+                        sub(/^uid:/, "", $i)
+                        print $i
+                        exit
+                    }
+                }
+            }
+        ')
+        [ -n "$newuid" ] && echo "$newuid $pkg" >>"$tmp"
+    done <"$ALLOW"
+
+    mv "$tmp" "$ALLOW"
+    chmod 0600 "$ALLOW" 2>/dev/null
+}
+
+find_server() {
+    server=""
+    if [ -f "$SERVER_PATH_FILE" ]; then
+        server=$(cat "$SERVER_PATH_FILE" 2>/dev/null)
+    fi
+    if [ -z "$server" ] || [ ! -x "$server" ]; then
+        server=$(ls -t /data/local/tmp/frida-server* 2>/dev/null | head -n 1)
+    fi
+    echo "$server"
+}
+
+frida_pids() {
+    ps -A -o PID,ARGS 2>/dev/null | grep '[f]rida-server' | awk '{print $1}'
+}
+
+cmd_start() {
+    ensure
+
+    server=$(find_server)
+    if [ -z "$server" ] || [ ! -x "$server" ]; then
+        echo "frida-server not found; set it with: frida-auth path <file>" >&2
+        return 1
+    fi
+
+    lib=$(abi_lib_for_server "$server")
+    if [ ! -f "$lib" ]; then
+        echo "shim not found: $lib" >&2
+        return 1
+    fi
+
+    cmd_stop >/dev/null 2>&1
+    sleep 1
+    env LD_PRELOAD="$lib" "$server" -D >/dev/null 2>&1
+    sleep 1
+
+    pid=$(frida_pids | head -n 1)
+    echo "server=$server"
+    echo "shim=$lib"
+    echo "pid=${pid:-none}"
+}
+
+cmd_stop() {
+    if command -v pkill >/dev/null 2>&1; then
+        pkill -9 -f 'frida-server' 2>/dev/null
+    fi
+    for p in $(frida_pids); do
+        kill -9 "$p" 2>/dev/null
+    done
+    echo "stopped"
+}
+
+cmd_status() {
+    ensure
+
+    count=$(awk 'NF && $1 !~ /^#/ { c++ } END { print c + 0 }' "$ALLOW" 2>/dev/null)
+    echo "allowed=${count:-0}"
+
+    lib=$(abi_lib)
+    if [ -f "$lib" ]; then
+        echo "shim=yes"
+    else
+        echo "shim=no"
+    fi
+    echo "shim_path=$lib"
+
+    server=$(find_server)
+    echo "server_path=${server:-none}"
+
+    pids=$(frida_pids)
+    if [ -z "$pids" ]; then
+        echo "server=stopped"
+        echo "preload=no"
+        echo "pid=none"
+        return 0
+    fi
+
+    first=$(echo "$pids" | head -n 1)
+    echo "server=running"
+    echo "pid=$first"
+
+    if tr '\0' '\n' </proc/"$first"/environ 2>/dev/null | grep -q '^LD_PRELOAD='; then
+        echo "preload=yes"
+        echo "ld_preload=$(tr '\0' '\n' </proc/"$first"/environ 2>/dev/null | sed -n 's/^LD_PRELOAD=//p' | head -n 1)"
+    else
+        echo "preload=no"
+        echo "ld_preload="
+    fi
+
+    if grep -q 'libfrida_auth' /proc/"$first"/maps 2>/dev/null; then
+        echo "shim_loaded=yes"
+    else
+        echo "shim_loaded=no"
+    fi
+}
+
+cmd_path() {
+    path=${1:-}
+    if [ -z "$path" ]; then
+        cat "$SERVER_PATH_FILE" 2>/dev/null
+        return 0
+    fi
+    ensure
+    printf '%s' "$path" >"$SERVER_PATH_FILE"
+    echo "server_path=$path"
+}
+
+cmd_autostart() {
+    value=${1:-}
+    case "$value" in
+    on | 1)
+        printf '1' >"$AUTOSTART_FILE"
+        echo "autostart=on"
+        ;;
+    off | 0 | '')
+        printf '0' >"$AUTOSTART_FILE"
+        echo "autostart=off"
+        ;;
+    *)
+        echo "usage: frida-auth autostart on|off" >&2
+        return 2
+        ;;
+    esac
+}
+
+command=${1:-status}
+shift 2>/dev/null || true
+
+case "$command" in
+ensure) ensure ;;
+list) cmd_list ;;
+set) cmd_set "$@" ;;
+del) cmd_del "$@" ;;
+resolve) cmd_resolve ;;
+apply) ensure && cmd_resolve ;;
+start) cmd_start ;;
+stop) cmd_stop ;;
+status) cmd_status ;;
+path) cmd_path "$@" ;;
+autostart) cmd_autostart "$@" ;;
+*)
+    echo "usage: frida-auth {ensure|list|set <pkg> <uid>|del <pkg>|resolve|apply|start|stop|status|path [file]|autostart on|off}" >&2
+    exit 2
+    ;;
+esac

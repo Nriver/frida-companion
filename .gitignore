@@ -7,6 +7,9 @@ companion.log
 cache.json
 utils/tmp/_adb_cache/
 
+# frida-auth KernelSU module build output
+ksu-frida-auth/dist/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

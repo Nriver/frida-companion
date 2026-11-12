@@ -1,0 +1,6 @@
+allow ksu self capability sys_ptrace
+allow ksu self process { ptrace signal }
+allow ksu appdomain process { ptrace signal }
+allow appdomain ksu tcp_socket { connect read write getattr setattr getopt setopt shutdown }
+allow appdomain ksu unix_stream_socket { connect read write getattr getopt setopt shutdown }
+allow appdomain ksu unix_stream_socket connectto

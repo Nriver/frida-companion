@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Frida Auth</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #0f1115;
+            --fg: #e8eaed;
+            --muted: #9aa0a6;
+            --card: #181b21;
+            --line: #2a2e37;
+            --accent: #4c8dff;
+            --ok: #45c26b;
+            --bad: #ff5c5c;
+            --warn: #f0a742;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px 14px 40px;
+            font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans CJK SC", sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+        }
+
+        header {
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 2px;
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 3px 0;
+            font-size: 13px;
+        }
+
+        .row .k {
+            color: var(--muted);
+        }
+
+        .row .v {
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .ok {
+            color: var(--ok);
+        }
+
+        .bad {
+            color: var(--bad);
+        }
+
+        .warn {
+            color: var(--warn);
+        }
+
+        .bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"],
+        input[type="search"] {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            color: var(--fg);
+            font-size: 13px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: #22262f;
+            color: var(--fg);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        button:active {
+            background: #2c313c;
+        }
+
+        button.primary {
+            border-color: #2f5fae;
+            background: #1c3a69;
+        }
+
+        button.danger {
+            border-color: #7a2f2f;
+            background: #4a2020;
+        }
+
+        .chk {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .item.on {
+            border-color: #2f6f45;
+            background: #16241b;
+        }
+
+        .icon {
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            border-radius: 10px;
+            background: #262b34;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            overflow: hidden;
+        }
+
+        .icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .name {
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pkg {
+            font-size: 11px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+
+        .switch {
+            position: relative;
+            width: 46px;
+            height: 27px;
+            flex: 0 0 46px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            border-radius: 27px;
+            background: #333842;
+            transition: background .15s;
+        }
+
+        .slider::before {
+            content: "";
+            position: absolute;
+            width: 21px;
+            height: 21px;
+            left: 3px;
+            top: 3px;
+            border-radius: 50%;
+            background: #ffffff;
+            transition: transform .15s;
+        }
+
+        .switch input:checked+.slider {
+            background: var(--ok);
+        }
+
+        .switch input:checked+.slider::before {
+            transform: translateX(19px);
+        }
+
+        .switch input:disabled+.slider {
+            opacity: .35;
+        }
+
+        .empty {
+            color: var(--muted);
+            text-align: center;
+            padding: 24px 0;
+            font-size: 13px;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+            margin: 6px 0 0;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translateX(-50%) translateY(20px);
+            background: #2b303a;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .18s, transform .18s;
+            max-width: 90vw;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        details summary {
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Frida Auth</h1>
+        <div class="sub">按 App 授权 frida-server 的目标</div>
+    </header>
+
+    <section class="card">
+        <div class="row"><span class="k">bridge</span><span class="v" id="stBridge">…</span></div>
+        <div class="row"><span class="k">shim</span><span class="v" id="stShim">…</span></div>
+        <div class="row"><span class="k">server</span><span class="v" id="stServer">…</span></div>
+        <div class="row"><span class="k">enforced</span><span class="v" id="stEnforced">…</span></div>
+        <div class="row"><span class="k">allowed apps</span><span class="v" id="stAllowed">…</span></div>
+    </section>
+
+    <div class="bar">
+        <input type="search" id="search" placeholder="搜索应用 / 包名">
+        <button id="refresh">刷新</button>
+    </div>
+
+    <div class="bar">
+        <label class="chk"><input type="checkbox" id="showSystem"> 系统应用</label>
+        <button class="primary" id="startBtn">启动 Frida</button>
+        <button class="danger" id="stopBtn">停止</button>
+    </div>
+
+    <details class="card">
+        <summary>设置 frida-server 路径</summary>
+        <p class="hint">留空则自动选择 /data/local/tmp 下最新的 frida-server。必须从本页或
+            <code>frida-auth start</code> 启动，授权规则才会生效。</p>
+        <div class="bar" style="margin-top:10px">
+            <input type="text" id="serverPath" placeholder="/data/local/tmp/frida-server-...">
+        </div>
+        <div class="bar">
+            <button id="savePath">保存路径</button>
+            <label class="chk"><input type="checkbox" id="autostart"> 开机自动启动</label>
+        </div>
+    </details>
+
+    <div id="list" class="list"></div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        (function () {
+            "use strict";
+
+            var MOD = "/data/adb/modules/frida-auth";
+            var BIN = MOD + "/bin/frida-auth";
+            var DATA = "/data/adb/frida-auth";
+            var ALLOW = DATA + "/allow.list";
+
+            var BRIDGE = null;
+            var BNAME = "";
+            (function () {
+                var names = ["kernelsu", "ksu", "mmrl", "apatch", "KernelSU"];
+                for (var i = 0; i < names.length; i++) {
+                    var a = window[names[i]];
+                    if (a && typeof a.exec === "function") {
+                        BRIDGE = a;
+                        BNAME = names[i];
+                        break;
+                    }
+                }
+            })();
+
+            var state = {
+                infos: [],
+                allowed: {},
+                allowedUids: {},
+                showSystem: false,
+                query: "",
+                loading: false
+            };
+
+            function $(id) {
+                return document.getElementById(id);
+            }
+
+            function normalize(value) {
+                if (value === null || value === undefined)
+                    return "";
+                if (typeof value === "string")
+                    return value;
+                if (typeof value === "object") {
+                    if (typeof value.stdout === "string")
+                        return value.stdout;
+                    if (typeof value.result === "string")
+                        return value.result;
+                    if (typeof value.output === "string")
+                        return value.output;
+                }
+                return "";
+            }
+
+            function sh(command) {
+                if (!BRIDGE)
+                    return Promise.resolve("");
+                return new Promise(function (resolve) {
+                    var finished = false;
+                    function finish(value) {
+                        if (finished)
+                            return;
+                        finished = true;
+                        resolve(normalize(value));
+                    }
+
+                    var callback = "__frida_auth_cb_" + Date.now() + "_" +
+                        Math.floor(Math.random() * 1000000);
+                    window[callback] = function (errno, stdout) {
+                        delete window[callback];
+                        finish(stdout);
+                    };
+
+                    var ret;
+                    try {
+                        ret = BRIDGE.exec(command, "{}", callback);
+                    } catch (e) {
+                        try {
+                            ret = BRIDGE.exec(command);
+                        } catch (e2) {
+                            delete window[callback];
+                            finish("");
+                            return;
+                        }
+                    }
+
+                    if (ret !== undefined && ret !== null) {
+                        delete window[callback];
+                        if (typeof ret.then === "function") {
+                            ret.then(function (value) {
+                                finish(value);
+                            }, function () {
+                                finish("");
+                            });
+                        } else {
+                            finish(ret);
+                        }
+                    } else {
+                        setTimeout(function () {
+                            delete window[callback];
+                            finish("");
+                        }, 20000);
+                    }
+                });
+            }
+
+            function pmObject() {
+                if (BRIDGE && typeof BRIDGE.pm === "function") {
+                    try {
+                        return BRIDGE.pm();
+                    } catch (e) {
+                        return null;
+                    }
+                }
+                return null;
+            }
+
+            function listPackageNames(scope) {
+                var pm = pmObject();
+                if (pm && typeof pm.listPackages === "function") {
+                    try {
+                        return JSON.parse(pm.listPackages(scope));
+                    } catch (e) { }
+                }
+                if (BRIDGE && typeof BRIDGE.listPackages === "function") {
+                    try {
+                        return JSON.parse(BRIDGE.listPackages(scope));
+                    } catch (e) { }
+                }
+                return null;
+            }
+
+            function getPackageInfos(names) {
+                var pm = pmObject();
+                if (pm && typeof pm.getPackagesInfo === "function") {
+                    try {
+                        return JSON.parse(pm.getPackagesInfo(JSON.stringify(names)));
+                    } catch (e) { }
+                }
+                if (BRIDGE && typeof BRIDGE.getPackagesInfo === "function") {
+                    try {
+                        return JSON.parse(BRIDGE.getPackagesInfo(JSON.stringify(names)));
+                    } catch (e) { }
+                }
+                return null;
+            }
+
+            function shellPackages(showSystem) {
+                var flag = showSystem ? "" : "-3";
+                return sh("pm list packages " + flag + " -U 2>/dev/null").then(function (out) {
+                    if (!out) {
+                        return sh("cmd package list packages " + flag + " -U 2>/dev/null");
+                    }
+                    return out;
+                }).then(function (out) {
+                    var result = [];
+                    (out || "").split("\n").forEach(function (line) {
+                        line = line.trim();
+                        if (!line)
+                            return;
+                        var match = line.match(/package:(\S+)\s+uid:(\d+)/);
+                        if (match) {
+                            result.push({
+                                packageName: match[1],
+                                uid: parseInt(match[2], 10),
+                                appLabel: match[1],
+                                isSystem: null
+                            });
+                        }
+                    });
+                    return result;
+                });
+            }
+
+            function readAllowlist() {
+                return sh("cat " + ALLOW + " 2>/dev/null").then(function (out) {
+                    state.allowed = {};
+                    state.allowedUids = {};
+                    (out || "").split("\n").forEach(function (line) {
+                        line = line.trim();
+                        if (!line || line.charAt(0) === "#")
+                            return;
+                        var parts = line.split(/\s+/);
+                        if (parts.length < 2)
+                            return;
+                        var uid = parseInt(parts[0], 10);
+                        var pkg = parts[1];
+                        state.allowed[pkg] = true;
+                        if (!isNaN(uid))
+                            state.allowedUids[uid] = true;
+                    });
+                });
+            }
+
+            function loadPackages() {
+                state.loading = true;
+                render();
+                var scope = state.showSystem ? "all" : "user";
+                var names = listPackageNames(scope);
+                var promise;
+
+                if (names && names.length) {
+                    var infos = [];
+                    var index = 0;
+                    promise = new Promise(function (resolve) {
+                        function chunk() {
+                            if (index >= names.length) {
+                                resolve(infos);
+                                return;
+                            }
+                            var slice = names.slice(index, index + 60);
+                            index += 60;
+                            var part = getPackageInfos(slice);
+                            if (part && part.length)
+                                infos = infos.concat(part);
+                            setTimeout(chunk, 0);
+                        }
+                        chunk();
+                    });
+                } else {
+                    promise = shellPackages(state.showSystem);
+                }
+
+                return promise.then(function (infos) {
+                    var map = {};
+                    (infos || []).forEach(function (info) {
+                        if (!info || !info.packageName)
+                            return;
+                        if (info.uid === null || info.uid === undefined)
+                            return;
+                        if (info.error)
+                            return;
+                        var previous = map[info.packageName];
+                        if (!previous || (info.userId === 0 && previous.userId !== 0))
+                            map[info.packageName] = info;
+                    });
+                    var list = [];
+                    for (var key in map)
+                        list.push(map[key]);
+                    if (!state.showSystem) {
+                        list = list.filter(function (info) {
+                            return info.isSystem !== true;
+                        });
+                    }
+                    list.sort(function (a, b) {
+                        var la = (a.appLabel || a.packageName || "").toLowerCase();
+                        var lb = (b.appLabel || b.packageName || "").toLowerCase();
+                        return la < lb ? -1 : la > lb ? 1 : 0;
+                    });
+                    state.infos = list;
+                    state.loading = false;
+                    render();
+                });
+            }
+
+            function render() {
+                var list = $("list");
+                var query = state.query.toLowerCase();
+                var items = state.infos.filter(function (info) {
+                    var label = (info.appLabel || info.packageName || "").toLowerCase();
+                    var pkg = (info.packageName || "").toLowerCase();
+                    return !query || label.indexOf(query) >= 0 || pkg.indexOf(query) >= 0;
+                });
+
+                list.innerHTML = "";
+                if (state.loading) {
+                    list.innerHTML = '<div class="empty">加载中…</div>';
+                    return;
+                }
+                if (!items.length) {
+                    list.innerHTML = '<div class="empty">没有匹配的应用</div>';
+                    return;
+                }
+
+                var fragment = document.createDocumentFragment();
+                var iconSupported = !!pmObject();
+
+                items.forEach(function (info) {
+                    var pkg = info.packageName;
+                    var uid = info.uid;
+                    var checked = !!state.allowed[pkg] || !!state.allowedUids[uid];
+                    var label = info.appLabel || pkg;
+
+                    var row = document.createElement("div");
+                    row.className = "item" + (checked ? " on" : "");
+
+                    var icon = document.createElement("div");
+                    icon.className = "icon";
+                    if (iconSupported) {
+                        var img = document.createElement("img");
+                        img.src = "ksu://icon/" + pkg;
+                        img.onerror = function () {
+                            img.remove();
+                            icon.textContent = label.charAt(0).toUpperCase();
+                        };
+                        icon.appendChild(img);
+                    } else {
+                        icon.textContent = label.charAt(0).toUpperCase();
+                    }
+
+                    var meta = document.createElement("div");
+                    meta.className = "meta";
+                    var name = document.createElement("div");
+                    name.className = "name";
+                    name.textContent = label;
+                    var sub = document.createElement("div");
+                    sub.className = "pkg";
+                    sub.textContent = pkg + (uid !== null && uid !== undefined ? " · " + uid : "");
+                    meta.appendChild(name);
+                    meta.appendChild(sub);
+
+                    var switchLabel = document.createElement("label");
+                    switchLabel.className = "switch";
+                    var input = document.createElement("input");
+                    input.type = "checkbox";
+                    input.checked = checked;
+                    input.disabled = (uid === null || uid === undefined);
+                    input.addEventListener("change", function () {
+                        toggle(pkg, uid, input.checked, row);
+                    });
+                    var slider = document.createElement("span");
+                    slider.className = "slider";
+                    switchLabel.appendChild(input);
+                    switchLabel.appendChild(slider);
+
+                    row.appendChild(icon);
+                    row.appendChild(meta);
+                    row.appendChild(switchLabel);
+                    fragment.appendChild(row);
+                });
+
+                list.appendChild(fragment);
+            }
+
+            function toggle(pkg, uid, enabled, row) {
+                if (uid === null || uid === undefined)
+                    return;
+                var command = enabled
+                    ? BIN + " set '" + pkg + "' '" + uid + "'"
+                    : BIN + " del '" + pkg + "'";
+                row.classList.toggle("on", enabled);
+                sh(command).then(function () {
+                    return readAllowlist();
+                }).then(function () {
+                    var scroll = window.scrollY;
+                    render();
+                    window.scrollTo(0, scroll);
+                    refreshStatus();
+                });
+            }
+
+            function parseStatus(text) {
+                var result = {};
+                (text || "").split("\n").forEach(function (line) {
+                    var idx = line.indexOf("=");
+                    if (idx > 0)
+                        result[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+                });
+                return result;
+            }
+
+            function refreshStatus() {
+                $("stBridge").textContent = BRIDGE ? BNAME + " OK" : "missing";
+                $("stBridge").className = "v " + (BRIDGE ? "ok" : "bad");
+
+                return sh(BIN + " status 2>&1").then(function (out) {
+                    var st = parseStatus(out);
+                    var shim = st.shim === "yes";
+                    var running = st.server === "running";
+                    var preload = st.preload === "yes";
+                    var loaded = st.shim_loaded === "yes";
+                    var enforced = running && preload && loaded;
+
+                    $("stShim").textContent = shim ? "present" : "missing";
+                    $("stShim").className = "v " + (shim ? "ok" : "bad");
+
+                    $("stServer").textContent = running ? ("running · " + (st.pid || "?")) : "stopped";
+                    $("stServer").className = "v " + (running ? "ok" : "");
+
+                    $("stEnforced").textContent = running
+                        ? (enforced ? "yes" : "NO (restart via module)")
+                        : "-";
+                    $("stEnforced").className = "v " + (enforced ? "ok" : (running ? "bad" : ""));
+
+                    var count = 0;
+                    for (var key in state.allowed)
+                        count++;
+                    $("stAllowed").textContent = String(count);
+                });
+            }
+
+            function loadSettings() {
+                return sh("cat " + DATA + "/server_path 2>/dev/null").then(function (out) {
+                    $("serverPath").value = (out || "").trim();
+                    return sh("cat " + DATA + "/autostart 2>/dev/null");
+                }).then(function (out) {
+                    $("autostart").checked = (out || "").trim() === "1";
+                });
+            }
+
+            function writeFile(path, content) {
+                var data = btoa(unescape(encodeURIComponent(content)));
+                return sh("printf '%s' '" + data + "' | base64 -d > '" + path + "'");
+            }
+
+            var toastTimer = null;
+            function toast(message) {
+                var el = $("toast");
+                el.textContent = message;
+                el.classList.add("show");
+                if (toastTimer)
+                    clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () {
+                    el.classList.remove("show");
+                }, 2200);
+            }
+
+            function bind() {
+                $("search").addEventListener("input", function () {
+                    state.query = this.value || "";
+                    render();
+                });
+
+                $("showSystem").addEventListener("change", function () {
+                    state.showSystem = !!this.checked;
+                    loadPackages();
+                });
+
+                $("refresh").addEventListener("click", function () {
+                    readAllowlist().then(loadPackages).then(refreshStatus);
+                });
+
+                $("startBtn").addEventListener("click", function () {
+                    toast("正在启动…");
+                    sh(BIN + " start 2>&1").then(function (out) {
+                        toast((out || "done").trim());
+                        return refreshStatus();
+                    });
+                });
+
+                $("stopBtn").addEventListener("click", function () {
+                    sh(BIN + " stop 2>&1").then(function () {
+                        toast("已停止");
+                        return refreshStatus();
+                    });
+                });
+
+                $("savePath").addEventListener("click", function () {
+                    var path = $("serverPath").value.trim();
+                    writeFile(DATA + "/server_path", path).then(function () {
+                        toast("路径已保存");
+                        return refreshStatus();
+                    });
+                });
+
+                $("autostart").addEventListener("change", function () {
+                    sh(BIN + " autostart " + (this.checked ? "on" : "off"));
+                });
+            }
+
+            function init() {
+                bind();
+                if (!BRIDGE) {
+                    $("stBridge").textContent = "missing";
+                    $("stBridge").className = "v bad";
+                    $("list").innerHTML =
+                        '<div class="empty">需要在 KernelSU Manager 中打开模块 WebUI</div>';
+                    return;
+                }
+                sh("mkdir -p " + DATA);
+                readAllowlist()
+                    .then(loadSettings)
+                    .then(loadPackages)
+                    .then(refreshStatus);
+            }
+
+            document.addEventListener("DOMContentLoaded", init);
+        })();
+    </script>
+</body>
+
+</html>
