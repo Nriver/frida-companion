@@ -55,24 +55,58 @@ def get_android_architecture(device_id=None):
     return arch
 
 
-def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
+FRIDA_AUTH_BIN = '/data/adb/modules/frida-auth/bin/frida-auth'
 
+
+def is_frida_auth_installed(device_id=None):
+    """Check whether the frida-auth KernelSU module is active on the device."""
+    res = execute_with_root(f'test -x {FRIDA_AUTH_BIN} && echo yes', device_id=device_id)
+    return 'yes' in (res or '')
+
+
+def push_frida_server(src, dst='/data/local/tmp/', file_name=None, device_id=None):
+    """Stop old frida processes, push the server and set up port forwards."""
     # kill old frida process
     execute_with_root(['shell', 'pkill -9 frida'], device_id=device_id)
     execute_with_root(['shell', 'pkill -9 frida-server'], device_id=device_id)
 
     # push new file
     run_adb_command(f'''push {os.path.abspath(src)} {dst}''', device_id=device_id)
-    execute_with_root(f'''chmod 777 {os.path.join(dst, file_name)}''', device_id=device_id)
+    server_path = os.path.join(dst, file_name)
+    execute_with_root(f'''chmod 777 {server_path}''', device_id=device_id)
 
     # port forward
     run_adb_command(f'''forward tcp:27042 tcp:27042''', device_id=device_id)
     run_adb_command(f'''forward tcp:27043 tcp:27043''', device_id=device_id)
 
-    # os.system will hang on this execution, so use subprocess here
-    cmd = f"{os.path.join(dst, file_name)}"
-    res = execute_with_root(cmd, device_id=device_id, nohup=True, return_pid=True)
-    logger.info(f'frida-server started, pid is {res}')
+    return server_path
+
+
+def start_frida_server_with_auth(server_path, device_id=None):
+    """Start frida-server through the frida-auth module and return its status."""
+    execute_with_root(f'{FRIDA_AUTH_BIN} path {server_path}', device_id=device_id)
+    execute_with_root(f'{FRIDA_AUTH_BIN} start', device_id=device_id)
+    status = execute_with_root(f'{FRIDA_AUTH_BIN} status', device_id=device_id)
+    logger.info(f'frida-auth status:\n{status}')
+    return status
+
+
+def adb_push_and_run_frida_server(src, dst, file_name, device_id=None):
+
+    server_path = push_frida_server(src, dst, file_name, device_id)
+
+    if is_frida_auth_installed(device_id):
+        status = start_frida_server_with_auth(server_path, device_id)
+        print('[frida-auth] status:\n' + (status or '<no output>'))
+        if 'shim_loaded=yes' not in (status or ''):
+            logger.warning('frida-auth shim was not loaded, authorization is disabled; starting directly')
+            res = execute_with_root(server_path, device_id=device_id, nohup=True, return_pid=True)
+            logger.info(f'frida-server started, pid is {res}')
+    else:
+        # os.system will hang on this execution, so use subprocess here
+        res = execute_with_root(server_path, device_id=device_id, nohup=True, return_pid=True)
+        logger.info(f'frida-server started, pid is {res}')
+
     print('ok')
 
 

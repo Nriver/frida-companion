@@ -9,7 +9,8 @@ from tools.adb_tool import adb_connect_from_file
 from utils.adb_helper import start_adb
 from utils.cache_helper import cache
 from utils.date_helper import timestamp_diff_in_days
-from utils.frida_helper import check_frida_update, check_frida_server_update, run_frida_server, get_application_list
+from utils.frida_helper import check_frida_update, check_frida_server_update, run_frida_server_with_auth, \
+    get_application_list
 
 # init logger
 logger = logging.getLogger()
@@ -24,6 +25,7 @@ logger.addHandler(fh)
 
 if __name__ == '__main__':
 
+    # set_adb_device_from_file('./ADB_IP')
     set_adb_device_from_file('./ADB_IP_ace')
 
     print('Frida-companion ;)')
@@ -34,9 +36,13 @@ if __name__ == '__main__':
     # see: https://github.com/frida/frida/issues/2360
     # frida_version = ""
     # frida_version = "16.0.3"
-    frida_version = "16.6.6"
+    # frida_version = "16.7.19"
+    frida_version = "17.26.2"
     # frida_tools_version = "12.0.4"
-    frida_tools_version = "13.6.1"
+    # frida_tools_version = "13.7.1"
+    frida_tools_version = "14.13.1"
+
+    print(f"manual install: pip install frida=={frida_version} frida-tools=={frida_tools_version}")
 
     if check_update_on_start:
         last_update_time = cache.get_frida_update_time()
@@ -50,8 +56,8 @@ if __name__ == '__main__':
     # check frida-server
     check_frida_server_update(frida_version=frida_version)
 
-    # push frida-server and run
-    run_frida_server(frida_version=frida_version)
+    # push frida-server and run (through frida-auth when the module is installed)
+    run_frida_server_with_auth(frida_version=frida_version)
 
     # show application list
     get_application_list()

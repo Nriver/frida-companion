@@ -121,7 +121,11 @@ su -c "$BIN autostart on"           # 开机自动启动
 
 ## 与 frida-companion 配合
 
-如果仍用 frida-companion 启动 server，需要让它带上 shim，否则授权不生效。
+本项目的 `test.py` 已改为调用 `run_frida_server_with_auth()`：检测到 `frida-auth`
+模块时，会自动通过 `frida-auth start` 带上 shim 启动，并校验 `preload` / `shim_loaded`
+状态；未安装模块时回退到原来的启动流程。
+
+如果不是通过 `test.py` 启动，需要手动让 server 带上 shim，否则授权不生效。
 启动命令前加：
 
 ```sh

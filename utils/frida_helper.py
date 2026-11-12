@@ -10,7 +10,7 @@ from tabulate import tabulate
 
 from settings import frida_server_save_path, DEBUG, device_type_order
 from utils.adb_helper import get_android_architecture, adb_push_and_run_frida_server, is_android, \
-    is_frida_server_running
+    is_frida_server_running, is_frida_auth_installed, push_frida_server, start_frida_server_with_auth
 from utils.github_helper import get_latest_repo_release
 from utils.requests_helper import requests_get_download
 
@@ -128,6 +128,38 @@ def run_frida_server(device_id=None, target_path='/data/local/tmp/', frida_versi
     frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
     adb_push_and_run_frida_server(os.path.join(frida_server_save_path, frida_server_file), target_path,
                                   frida_server_file, device_id)
+
+
+def run_frida_server_with_auth(device_id=None, target_path='/data/local/tmp/', frida_version=None):
+    """Push frida-server and start it through the frida-auth module when available.
+
+    Returns True when the module is active and the LD_PRELOAD shim is loaded,
+    False when it falls back to the legacy (unrestricted) start.
+    """
+    device_arch = get_android_architecture(device_id)
+    if frida_version:
+        print(f"use specific frida version {frida_version}")
+    else:
+        frida_version = frida.__version__
+        print(f"use current installed version {frida_version}")
+
+    frida_server_file = f'frida-server-{frida_version}-android-{device_arch}'
+    src = os.path.join(frida_server_save_path, frida_server_file)
+
+    if not is_frida_auth_installed(device_id):
+        print('[frida-auth] module not installed, using legacy start (authorization disabled)')
+        adb_push_and_run_frida_server(src, target_path, frida_server_file, device_id)
+        return False
+
+    server_path = push_frida_server(src, target_path, frida_server_file, device_id)
+    status = start_frida_server_with_auth(server_path, device_id)
+    print('[frida-auth] module status:')
+    print(status or '<no output>')
+
+    enforced = 'preload=yes' in (status or '') and 'shim_loaded=yes' in (status or '')
+    if not enforced:
+        print('[frida-auth] WARNING: shim not loaded, authorization is NOT enforced')
+    return enforced
 
 
 def get_device_list():
