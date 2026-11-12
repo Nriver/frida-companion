@@ -85,6 +85,7 @@
 
         .bar {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             align-items: center;
             margin-bottom: 10px;
@@ -105,6 +106,39 @@
 
         input:focus {
             border-color: var(--accent);
+        }
+
+        .bar.split > button {
+            flex: 1 1 0;
+        }
+
+        .segmented {
+            display: flex;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .segmented button {
+            border: 0;
+            border-radius: 0;
+            background: var(--card);
+            padding: 9px 16px;
+        }
+
+        .segmented button + button {
+            border-left: 1px solid var(--line);
+        }
+
+        .segmented button.active {
+            background: #1c3a69;
+            color: #fff;
+        }
+
+        .section-title {
+            margin: 18px 2px 8px;
+            font-size: 13px;
+            color: var(--muted);
         }
 
         button {
@@ -298,26 +332,15 @@
     </header>
 
     <section class="card">
-        <div class="row"><span class="k">bridge</span><span class="v" id="stBridge">…</span></div>
+        <div class="row"><span class="k">桥接</span><span class="v" id="stBridge">…</span></div>
         <div class="row"><span class="k">shim</span><span class="v" id="stShim">…</span></div>
-        <div class="row"><span class="k">server</span><span class="v" id="stServer">…</span></div>
-        <div class="row"><span class="k">enforced</span><span class="v" id="stEnforced">…</span></div>
-        <div class="row"><span class="k">allowed apps</span><span class="v" id="stAllowed">…</span></div>
+        <div class="row"><span class="k">服务</span><span class="v" id="stServer">…</span></div>
+        <div class="row"><span class="k">授权生效</span><span class="v" id="stEnforced">…</span></div>
+        <div class="row"><span class="k">已授权 / 列表</span><span class="v" id="stAllowed">…</span></div>
     </section>
 
-    <div class="bar">
-        <input type="search" id="search" placeholder="搜索应用 / 包名">
-        <button id="refresh">刷新</button>
-    </div>
-
-    <div class="bar">
-        <label class="chk"><input type="checkbox" id="showSystem"> 系统应用</label>
-        <button class="primary" id="startBtn">启动 Frida</button>
-        <button class="danger" id="stopBtn">停止</button>
-    </div>
-
     <details class="card">
-        <summary>设置 frida-server 路径</summary>
+        <summary>frida-server 设置</summary>
         <p class="hint">留空则自动选择 /data/local/tmp 下最新的 frida-server。必须从本页或
             <code>frida-auth start</code> 启动，授权规则才会生效。</p>
         <div class="bar" style="margin-top:10px">
@@ -328,6 +351,26 @@
             <label class="chk"><input type="checkbox" id="autostart"> 开机自动启动</label>
         </div>
     </details>
+
+    <div class="bar split">
+        <button class="primary" id="startBtn">启动 Frida</button>
+        <button class="danger" id="stopBtn">停止</button>
+    </div>
+
+    <div class="section-title">应用列表</div>
+
+    <div class="bar">
+        <input type="search" id="search" placeholder="搜索应用 / 包名">
+        <button id="refresh">刷新</button>
+    </div>
+
+    <div class="bar">
+        <div class="segmented">
+            <button class="seg active" id="filterAll">全部</button>
+            <button class="seg" id="filterEnabled">已启用</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="showSystem"> 系统应用</label>
+    </div>
 
     <div id="list" class="list"></div>
 
@@ -361,6 +404,7 @@
                 allowed: {},
                 allowedUids: {},
                 showSystem: false,
+                authFilter: "all",
                 query: "",
                 loading: false
             };
@@ -586,14 +630,24 @@
                 });
             }
 
-            function render() {
-                var list = $("list");
+            function isChecked(info) {
+                return !!state.allowed[info.packageName] || !!state.allowedUids[info.uid];
+            }
+
+            function filteredItems() {
                 var query = state.query.toLowerCase();
-                var items = state.infos.filter(function (info) {
+                return state.infos.filter(function (info) {
                     var label = (info.appLabel || info.packageName || "").toLowerCase();
                     var pkg = (info.packageName || "").toLowerCase();
                     return !query || label.indexOf(query) >= 0 || pkg.indexOf(query) >= 0;
                 });
+            }
+
+            function render() {
+                var list = $("list");
+                var items = filteredItems();
+                if (state.authFilter === "enabled")
+                    items = items.filter(isChecked);
 
                 list.innerHTML = "";
                 if (state.loading) {
@@ -601,7 +655,9 @@
                     return;
                 }
                 if (!items.length) {
-                    list.innerHTML = '<div class="empty">没有匹配的应用</div>';
+                    list.innerHTML = '<div class="empty">' +
+                        (state.authFilter === 'enabled' ? '没有已启用的应用' : '没有匹配的应用') +
+                        '</div>';
                     return;
                 }
 
@@ -611,7 +667,7 @@
                 items.forEach(function (info) {
                     var pkg = info.packageName;
                     var uid = info.uid;
-                    var checked = !!state.allowed[pkg] || !!state.allowedUids[uid];
+                    var checked = isChecked(info);
                     var label = info.appLabel || pkg;
 
                     var row = document.createElement("div");
@@ -718,7 +774,8 @@
                     var count = 0;
                     for (var key in state.allowed)
                         count++;
-                    $("stAllowed").textContent = String(count);
+                    $("stAllowed").textContent =
+                        count + (state.infos.length ? " / " + state.infos.length : "");
                 });
             }
 
@@ -757,6 +814,21 @@
                 $("showSystem").addEventListener("change", function () {
                     state.showSystem = !!this.checked;
                     loadPackages();
+                });
+
+                function setAuthFilter(value) {
+                    state.authFilter = value;
+                    $("filterAll").classList.toggle("active", value === "all");
+                    $("filterEnabled").classList.toggle("active", value === "enabled");
+                    render();
+                }
+
+                $("filterAll").addEventListener("click", function () {
+                    setAuthFilter("all");
+                });
+
+                $("filterEnabled").addEventListener("click", function () {
+                    setAuthFilter("enabled");
                 });
 
                 $("refresh").addEventListener("click", function () {
@@ -800,7 +872,7 @@
                         '<div class="empty">需要在 KernelSU Manager 中打开模块 WebUI</div>';
                     return;
                 }
-                sh("mkdir -p " + DATA);
+                sh("mkdir -p " + DATA + " && chmod 0700 " + DATA);
                 readAllowlist()
                     .then(loadSettings)
                     .then(loadPackages)

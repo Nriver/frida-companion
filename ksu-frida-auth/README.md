@@ -63,7 +63,7 @@ ksu-frida-auth/dist/frida-auth-<version>.zip
 1. 把 zip 传到手机，例如：
 
    ```sh
-   adb push ksu-frida-auth/dist/frida-auth-0.2.1.zip /sdcard/Download/
+   adb push ksu-frida-auth/dist/frida-auth-0.2.4.zip /sdcard/Download/
    ```
 
 2. 打开 **KernelSU Manager → 模块 → 从本地安装**，选择该 zip。
@@ -72,8 +72,8 @@ ksu-frida-auth/dist/frida-auth-<version>.zip
 也可以用 `ksud`：
 
 ```sh
-adb push ksu-frida-auth/dist/frida-auth-0.2.1.zip /data/local/tmp/
-adb shell 'su -c "ksud module install /data/local/tmp/frida-auth-0.2.1.zip"'
+adb push ksu-frida-auth/dist/frida-auth-0.2.4.zip /data/local/tmp/
+adb shell 'su -c "ksud module install /data/local/tmp/frida-auth-0.2.4.zip"'
 ```
 
 ## 使用
@@ -81,7 +81,7 @@ adb shell 'su -c "ksud module install /data/local/tmp/frida-auth-0.2.1.zip"'
 ### WebUI
 
 1. 打开 **KernelSU Manager → 模块 → Frida Auth → WebUI**
-2. 勾选允许使用 frida 的 App
+2. 勾选允许使用 frida 的 App；列表支持「全部 / 已启用」过滤
 3. 点 **启动 Frida**（必须从这里启动，shim 才会加载）
 4. PC 端正常使用：
 

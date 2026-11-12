@@ -1,6 +1,6 @@
 id=frida-auth
 name=Frida Auth
-version=0.2.1
-versionCode=3
+version=0.2.4
+versionCode=6
 author=frida-companion
 description=按 App 授权 frida-server：LD_PRELOAD 拦截 + KernelSU WebUI 白名单
